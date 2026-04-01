@@ -954,7 +954,7 @@ function showKOQuestion() {
   koSelected = null;
   answered = false;
   const ko = gameKOs[currentRound - groupRounds];
-  const teams = Math.random() < 0.5 ? [ko.t1, ko.t2] : [ko.t2, ko.t1];
+  const teams = [ko.t1, ko.t2];
 
   document.getElementById('ko-round-info').textContent = `Round ${currentRound + 1} / ${totalRounds}`;
   document.getElementById('ko-score-display').textContent = `${score} pts`;
