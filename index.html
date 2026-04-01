@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Who Went Through?</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0e17;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 520px;
+    padding: 20px;
+  }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Start Screen */
+  .start-screen { text-align: center; }
+  .start-screen h1 {
+    font-size: 2.4em;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4fc3f7, #ab47bc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .start-screen .subtitle {
+    font-size: 1.1em;
+    color: #888;
+    margin-bottom: 30px;
+  }
+  .rules {
+    background: #151b2b;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: left;
+    margin-bottom: 30px;
+    line-height: 1.7;
+    font-size: 0.95em;
+    color: #aaa;
+  }
+  .rules strong { color: #e0e0e0; }
+  .rules .pts { color: #4fc3f7; font-weight: 700; }
+  .btn {
+    background: linear-gradient(135deg, #4fc3f7, #ab47bc);
+    border: none;
+    color: #fff;
+    font-size: 1.15em;
+    font-weight: 700;
+    padding: 14px 48px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover { transform: scale(1.04); box-shadow: 0 4px 20px rgba(79,195,247,0.3); }
+  .btn:active { transform: scale(0.97); }
+  .btn-hard {
+    background: linear-gradient(135deg, #ef5350, #ff7043);
+  }
+  .btn-hard:hover { box-shadow: 0 4px 20px rgba(239,83,80,0.3); }
+  .mode-desc {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.85em;
+    color: #666;
+    min-height: 3em;
+  }
+
+  /* Header bar */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .round-info { font-size: 0.95em; color: #888; }
+  .score-display { font-size: 1.1em; font-weight: 700; color: #4fc3f7; }
+
+  /* Timer */
+  .timer-bar-bg { display: none; }
+  .timer-bar { display: none; }
+
+  /* Team cards */
+  .team-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .team-card {
+    background: #151b2b;
+    border: 2px solid #252d42;
+    border-radius: 12px;
+    padding: 22px 12px;
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    user-select: none;
+  }
+  .team-card:hover { border-color: #4fc3f7; background: #1a2236; }
+  .team-card.selected {
+    border-color: #4fc3f7;
+    background: rgba(79,195,247,0.12);
+    box-shadow: 0 0 12px rgba(79,195,247,0.15);
+  }
+  .team-card.correct {
+    border-color: #66bb6a;
+    background: rgba(102,187,106,0.12);
+    cursor: default;
+  }
+  .team-card.wrong {
+    border-color: #ef5350;
+    background: rgba(239,83,80,0.12);
+    cursor: default;
+  }
+  .team-card.missed {
+    border-color: #66bb6a;
+    background: rgba(102,187,106,0.06);
+    cursor: default;
+    opacity: 0.7;
+  }
+  .team-card.neutral {
+    border-color: #252d42;
+    cursor: default;
+    opacity: 0.5;
+  }
+  .team-card.disabled { pointer-events: none; }
+
+  /* Result reveal */
+  .result-info {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .result-year {
+    font-size: 0.9em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .result-points {
+    font-size: 1.8em;
+    font-weight: 800;
+    margin: 12px 0;
+  }
+  .result-points.pts-0 { color: #ef5350; }
+  .result-points.pts-1 { color: #ffa726; }
+  .result-points.pts-3 { color: #66bb6a; }
+
+  /* Standings table */
+  .standings {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+    margin-bottom: 20px;
+  }
+  .standings th {
+    color: #666;
+    font-weight: 600;
+    padding: 6px 4px;
+    text-align: center;
+    border-bottom: 1px solid #252d42;
+  }
+  .standings th:first-child { text-align: left; }
+  .standings td {
+    padding: 7px 4px;
+    text-align: center;
+    border-bottom: 1px solid #1a1f30;
+  }
+  .standings td:first-child { text-align: left; font-weight: 600; }
+  .standings tr.advanced td:first-child { color: #66bb6a; }
+  .standings tr.eliminated td { color: #666; }
+
+  .next-btn {
+    display: block;
+    width: 100%;
+    background: #1e2538;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    font-size: 1em;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .next-btn:hover { background: #252d42; }
+
+  /* Knockout matchup */
+  .ko-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .ko-year { font-size: 1.4em; font-weight: 800; color: #e0e0e0; }
+  .ko-round { font-size: 0.95em; color: #888; margin-top: 2px; }
+  .ko-matchup {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .ko-card {
+    background: #151b2b;
+    border: 2px solid #252d42;
+    border-radius: 12px;
+    padding: 28px 12px;
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+  }
+  .ko-card:hover { border-color: #4fc3f7; background: #1a2236; }
+  .ko-card.selected { border-color: #4fc3f7; background: rgba(79,195,247,0.12); box-shadow: 0 0 12px rgba(79,195,247,0.15); }
+  .ko-card.correct { border-color: #66bb6a; background: rgba(102,187,106,0.12); cursor: default; }
+  .ko-card.wrong { border-color: #ef5350; background: rgba(239,83,80,0.12); cursor: default; }
+  .ko-card.missed { border-color: #66bb6a; background: rgba(102,187,106,0.06); cursor: default; opacity: 0.7; }
+  .ko-card.neutral { border-color: #252d42; cursor: default; opacity: 0.5; }
+  .ko-card.disabled { pointer-events: none; }
+  .ko-vs { font-size: 1.2em; font-weight: 700; color: #555; }
+  .ko-score-reveal {
+    text-align: center;
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+
+  .confirm-btn {
+    display: block;
+    width: 100%;
+    background: linear-gradient(135deg, #4fc3f7, #ab47bc);
+    border: none;
+    color: #fff;
+    font-size: 1em;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    opacity: 0.3;
+  }
+  .confirm-btn:not(:disabled) { opacity: 1; }
+  .confirm-btn:not(:disabled):hover { transform: scale(1.02); box-shadow: 0 2px 12px rgba(79,195,247,0.3); }
+  .confirm-btn:disabled { cursor: default; }
+
+  /* Final screen */
+  .final-screen { text-align: center; }
+  .final-score {
+    font-size: 3.5em;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4fc3f7, #ab47bc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 10px 0;
+  }
+  .final-max { font-size: 1em; color: #666; margin-bottom: 8px; }
+  .final-msg {
+    font-size: 1.15em;
+    color: #aaa;
+    margin-bottom: 24px;
+  }
+  .summary {
+    text-align: left;
+    margin-bottom: 24px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #151b2b;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.88em;
+  }
+  .summary-teams { color: #aaa; flex: 1; }
+  .summary-pts { font-weight: 700; min-width: 40px; text-align: right; }
+  .summary-pts.sp-0 { color: #ef5350; }
+  .summary-pts.sp-1 { color: #ffa726; }
+  .summary-pts.sp-3 { color: #66bb6a; }
+
+  .eliminated-banner {
+    text-align: center;
+    margin: 20px 0;
+    padding: 16px;
+    background: rgba(239,83,80,0.1);
+    border: 1px solid #ef5350;
+    border-radius: 12px;
+    color: #ef5350;
+    font-size: 1.1em;
+    font-weight: 700;
+  }
+  .qualify-banner {
+    text-align: center;
+    margin: 20px 0;
+    padding: 16px;
+    background: rgba(102,187,106,0.1);
+    border: 1px solid #66bb6a;
+    border-radius: 12px;
+    color: #66bb6a;
+    font-size: 1.1em;
+    font-weight: 700;
+  }
+  .gate-banner {
+    text-align: center;
+    margin: 12px 0;
+    padding: 12px;
+    background: rgba(239,83,80,0.1);
+    border: 1px solid #ef5350;
+    border-radius: 10px;
+    color: #ef5350;
+    font-size: 0.95em;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Start Screen -->
+  <div id="start-screen" class="screen active start-screen">
+    <h1>Who Went Through?</h1>
+    <p class="subtitle">World Cup Group Stage Quiz</p>
+    <div class="rules">
+      <strong>Group Stage</strong> — Pick the <strong>2 teams</strong> that topped their group.<br>
+      Both correct = <span class="pts">+3</span> &bull;
+      One = <span class="pts">+1</span> &bull;
+      None = <span class="pts">+0</span><br><br>
+      <strong>Knockouts</strong> — Pick the <strong>winner</strong> of the match.<br>
+      Correct = <span class="pts">+2</span> &bull;
+      Wrong = <span class="pts">+0</span><br><br>
+      No time limit &bull; take your time
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn" onclick="startGame('easy')">Easy Mode</button>
+      <button class="btn btn-hard" onclick="startGame('hard')">Hard Mode</button>
+    </div>
+    <div class="mode-desc" id="mode-desc"></div>
+  </div>
+
+  <!-- Question Screen -->
+  <div id="question-screen" class="screen">
+    <div class="header">
+      <span class="round-info" id="round-info">Round 1 / 10</span>
+      <span class="score-display" id="score-display">0 pts</span>
+    </div>
+    <div class="timer-bar-bg">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+    <div class="team-grid" id="team-grid"></div>
+    <button class="confirm-btn" id="confirm-btn" disabled onclick="submitAnswer()">Confirm</button>
+  </div>
+
+  <!-- Knockout Question Screen -->
+  <div id="ko-question-screen" class="screen">
+    <div class="header">
+      <span class="round-info" id="ko-round-info">Round 11 / 15</span>
+      <span class="score-display" id="ko-score-display">0 pts</span>
+    </div>
+    <div class="timer-bar-bg">
+      <div class="timer-bar" id="ko-timer-bar"></div>
+    </div>
+    <div class="ko-header">
+      <div class="ko-year" id="ko-year"></div>
+      <div class="ko-round" id="ko-round"></div>
+    </div>
+    <div class="ko-matchup" id="ko-matchup"></div>
+    <button class="confirm-btn" id="ko-confirm-btn" disabled onclick="submitKO()">Confirm</button>
+  </div>
+
+  <!-- Knockout Result Screen -->
+  <div id="ko-result-screen" class="screen">
+    <div class="header">
+      <span class="round-info" id="ko-result-round-info">Round 11 / 15</span>
+      <span class="score-display" id="ko-result-score-display">0 pts</span>
+    </div>
+    <div class="ko-header">
+      <div class="ko-year" id="ko-result-year"></div>
+      <div class="ko-round" id="ko-result-round"></div>
+    </div>
+    <div class="ko-matchup" id="ko-result-matchup"></div>
+    <div class="ko-score-reveal" id="ko-score-reveal"></div>
+    <div class="result-info">
+      <div class="result-points" id="ko-result-points"></div>
+    </div>
+    <button class="next-btn" id="ko-next-btn">Next</button>
+  </div>
+
+  <!-- Result Screen -->
+  <div id="result-screen" class="screen">
+    <div class="header">
+      <span class="round-info" id="result-round-info">Round 1 / 10</span>
+      <span class="score-display" id="result-score-display">0 pts</span>
+    </div>
+    <div class="result-info">
+      <div class="result-year" id="result-year"></div>
+      <div class="result-points" id="result-points"></div>
+    </div>
+    <div class="team-grid" id="result-team-grid"></div>
+    <table class="standings" id="standings-table"></table>
+    <button class="next-btn" id="next-btn">Next</button>
+  </div>
+
+  <!-- Final Screen -->
+  <div id="final-screen" class="screen final-screen">
+    <h1 style="font-size:1.4em;margin-bottom:4px;background:none;-webkit-text-fill-color:#888;">Game Over</h1>
+    <div class="final-score" id="final-score">0</div>
+    <div class="final-max" id="final-max">out of 40</div>
+    <div class="final-msg" id="final-msg"></div>
+    <div class="summary" id="summary"></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn" onclick="startGame('easy')">Easy Again</button>
+      <button class="btn btn-hard" onclick="startGame('hard')">Hard Again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GROUPS = [
+  // ========== 1930 ==========
+  {year:1930,group:"1",teams:["Argentina","Chile","France","Mexico"],advanced:["Argentina","Chile"],standings:[{team:"Argentina",w:3,d:0,l:0,gf:10,ga:4,pts:6},{team:"Chile",w:2,d:0,l:1,gf:5,ga:3,pts:4},{team:"France",w:1,d:0,l:2,gf:4,ga:3,pts:2},{team:"Mexico",w:0,d:0,l:3,gf:4,ga:13,pts:0}]},
+  // ========== 1950 ==========
+  {year:1950,group:"1",teams:["Brazil","Yugoslavia","Switzerland","Mexico"],advanced:["Brazil","Yugoslavia"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:8,ga:2,pts:5},{team:"Yugoslavia",w:2,d:0,l:1,gf:7,ga:3,pts:4},{team:"Switzerland",w:1,d:1,l:1,gf:4,ga:6,pts:3},{team:"Mexico",w:0,d:0,l:3,gf:2,ga:10,pts:0}]},
+  // ========== 1954 ==========
+  {year:1954,group:"1",teams:["Brazil","Yugoslavia","France","Mexico"],advanced:["Brazil","Yugoslavia"],standings:[{team:"Brazil",w:1,d:1,l:0,gf:6,ga:1,pts:3},{team:"Yugoslavia",w:1,d:1,l:0,gf:2,ga:1,pts:3},{team:"France",w:1,d:0,l:1,gf:3,ga:3,pts:2},{team:"Mexico",w:0,d:0,l:2,gf:2,ga:8,pts:0}]},
+  {year:1954,group:"2",teams:["Hungary","West Germany","Turkey","South Korea"],advanced:["Hungary","West Germany"],standings:[{team:"Hungary",w:2,d:0,l:0,gf:17,ga:3,pts:4},{team:"West Germany",w:1,d:0,l:1,gf:7,ga:9,pts:2},{team:"Turkey",w:1,d:0,l:1,gf:8,ga:4,pts:2},{team:"South Korea",w:0,d:0,l:2,gf:0,ga:16,pts:0}]},
+  {year:1954,group:"3",teams:["Uruguay","Austria","Czechoslovakia","Scotland"],advanced:["Uruguay","Austria"],standings:[{team:"Uruguay",w:2,d:0,l:0,gf:9,ga:0,pts:4},{team:"Austria",w:2,d:0,l:0,gf:6,ga:0,pts:4},{team:"Czechoslovakia",w:0,d:0,l:2,gf:0,ga:7,pts:0},{team:"Scotland",w:0,d:0,l:2,gf:0,ga:8,pts:0}]},
+  {year:1954,group:"4",teams:["England","Switzerland","Italy","Belgium"],advanced:["England","Switzerland"],standings:[{team:"England",w:1,d:1,l:0,gf:6,ga:4,pts:3},{team:"Switzerland",w:1,d:0,l:1,gf:2,ga:3,pts:2},{team:"Italy",w:1,d:0,l:1,gf:5,ga:3,pts:2},{team:"Belgium",w:0,d:1,l:1,gf:5,ga:8,pts:1}]},
+  // ========== 1958 ==========
+  {year:1958,group:"1",teams:["West Germany","Northern Ireland","Czechoslovakia","Argentina"],advanced:["West Germany","Northern Ireland"],standings:[{team:"West Germany",w:1,d:2,l:0,gf:7,ga:5,pts:4},{team:"Northern Ireland",w:1,d:1,l:1,gf:4,ga:5,pts:3},{team:"Czechoslovakia",w:1,d:1,l:1,gf:8,ga:4,pts:3},{team:"Argentina",w:1,d:0,l:2,gf:5,ga:10,pts:2}]},
+  {year:1958,group:"2",teams:["France","Yugoslavia","Paraguay","Scotland"],advanced:["France","Yugoslavia"],standings:[{team:"France",w:2,d:0,l:1,gf:11,ga:7,pts:4},{team:"Yugoslavia",w:1,d:2,l:0,gf:7,ga:6,pts:4},{team:"Paraguay",w:1,d:1,l:1,gf:9,ga:12,pts:3},{team:"Scotland",w:0,d:1,l:2,gf:4,ga:6,pts:1}]},
+  {year:1958,group:"3",teams:["Sweden","Wales","Hungary","Mexico"],advanced:["Sweden","Wales"],standings:[{team:"Sweden",w:2,d:1,l:0,gf:5,ga:1,pts:5},{team:"Wales",w:0,d:3,l:0,gf:2,ga:2,pts:3},{team:"Hungary",w:1,d:1,l:1,gf:6,ga:3,pts:3},{team:"Mexico",w:0,d:1,l:2,gf:1,ga:8,pts:1}]},
+  {year:1958,group:"4",teams:["Brazil","Soviet Union","England","Austria"],advanced:["Brazil","Soviet Union"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:5,ga:0,pts:5},{team:"Soviet Union",w:1,d:1,l:1,gf:4,ga:4,pts:3},{team:"England",w:0,d:3,l:0,gf:4,ga:4,pts:3},{team:"Austria",w:0,d:1,l:2,gf:2,ga:7,pts:1}]},
+  // ========== 1962 ==========
+  {year:1962,group:"1",teams:["Soviet Union","Yugoslavia","Uruguay","Colombia"],advanced:["Soviet Union","Yugoslavia"],standings:[{team:"Soviet Union",w:2,d:1,l:0,gf:8,ga:5,pts:5},{team:"Yugoslavia",w:2,d:0,l:1,gf:8,ga:3,pts:4},{team:"Uruguay",w:1,d:0,l:2,gf:4,ga:6,pts:2},{team:"Colombia",w:0,d:1,l:2,gf:5,ga:11,pts:1}]},
+  {year:1962,group:"2",teams:["West Germany","Chile","Italy","Switzerland"],advanced:["West Germany","Chile"],standings:[{team:"West Germany",w:2,d:1,l:0,gf:4,ga:1,pts:5},{team:"Chile",w:2,d:0,l:1,gf:5,ga:3,pts:4},{team:"Italy",w:1,d:1,l:1,gf:3,ga:2,pts:3},{team:"Switzerland",w:0,d:0,l:3,gf:2,ga:8,pts:0}]},
+  {year:1962,group:"3",teams:["Brazil","Czechoslovakia","Mexico","Spain"],advanced:["Brazil","Czechoslovakia"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:4,ga:1,pts:5},{team:"Czechoslovakia",w:1,d:1,l:1,gf:2,ga:3,pts:3},{team:"Mexico",w:1,d:0,l:2,gf:3,ga:4,pts:2},{team:"Spain",w:1,d:0,l:2,gf:2,ga:3,pts:2}]},
+  {year:1962,group:"4",teams:["Hungary","England","Argentina","Bulgaria"],advanced:["Hungary","England"],standings:[{team:"Hungary",w:2,d:1,l:0,gf:8,ga:2,pts:5},{team:"England",w:1,d:1,l:1,gf:4,ga:3,pts:3},{team:"Argentina",w:1,d:1,l:1,gf:2,ga:3,pts:3},{team:"Bulgaria",w:0,d:1,l:2,gf:1,ga:7,pts:1}]},
+  // ========== 1966 ==========
+  {year:1966,group:"1",teams:["England","Uruguay","Mexico","France"],advanced:["England","Uruguay"],standings:[{team:"England",w:2,d:1,l:0,gf:4,ga:0,pts:5},{team:"Uruguay",w:1,d:2,l:0,gf:2,ga:1,pts:4},{team:"Mexico",w:0,d:2,l:1,gf:1,ga:3,pts:2},{team:"France",w:0,d:1,l:2,gf:2,ga:5,pts:1}]},
+  {year:1966,group:"2",teams:["West Germany","Argentina","Spain","Switzerland"],advanced:["West Germany","Argentina"],standings:[{team:"West Germany",w:2,d:1,l:0,gf:7,ga:1,pts:5},{team:"Argentina",w:2,d:1,l:0,gf:4,ga:1,pts:5},{team:"Spain",w:1,d:0,l:2,gf:4,ga:5,pts:2},{team:"Switzerland",w:0,d:0,l:3,gf:1,ga:9,pts:0}]},
+  {year:1966,group:"3",teams:["Portugal","Hungary","Brazil","Bulgaria"],advanced:["Portugal","Hungary"],standings:[{team:"Portugal",w:3,d:0,l:0,gf:9,ga:2,pts:6},{team:"Hungary",w:2,d:0,l:1,gf:7,ga:5,pts:4},{team:"Brazil",w:1,d:0,l:2,gf:4,ga:6,pts:2},{team:"Bulgaria",w:0,d:0,l:3,gf:1,ga:8,pts:0}]},
+  {year:1966,group:"4",teams:["Soviet Union","North Korea","Italy","Chile"],advanced:["Soviet Union","North Korea"],standings:[{team:"Soviet Union",w:3,d:0,l:0,gf:6,ga:1,pts:6},{team:"North Korea",w:1,d:1,l:1,gf:2,ga:4,pts:3},{team:"Italy",w:1,d:0,l:2,gf:2,ga:2,pts:2},{team:"Chile",w:0,d:1,l:2,gf:2,ga:5,pts:1}]},
+  // ========== 1970 ==========
+  {year:1970,group:"1",teams:["Soviet Union","Mexico","Belgium","El Salvador"],advanced:["Soviet Union","Mexico"],standings:[{team:"Soviet Union",w:2,d:1,l:0,gf:6,ga:1,pts:5},{team:"Mexico",w:2,d:1,l:0,gf:5,ga:0,pts:5},{team:"Belgium",w:1,d:0,l:2,gf:4,ga:5,pts:2},{team:"El Salvador",w:0,d:0,l:3,gf:0,ga:9,pts:0}]},
+  {year:1970,group:"2",teams:["Italy","Uruguay","Sweden","Israel"],advanced:["Italy","Uruguay"],standings:[{team:"Italy",w:1,d:2,l:0,gf:1,ga:0,pts:4},{team:"Uruguay",w:1,d:1,l:1,gf:2,ga:1,pts:3},{team:"Sweden",w:1,d:1,l:1,gf:2,ga:2,pts:3},{team:"Israel",w:0,d:2,l:1,gf:1,ga:3,pts:2}]},
+  {year:1970,group:"3",teams:["Brazil","England","Romania","Czechoslovakia"],advanced:["Brazil","England"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:8,ga:3,pts:6},{team:"England",w:2,d:0,l:1,gf:2,ga:1,pts:4},{team:"Romania",w:1,d:0,l:2,gf:4,ga:5,pts:2},{team:"Czechoslovakia",w:0,d:0,l:3,gf:2,ga:7,pts:0}]},
+  {year:1970,group:"4",teams:["West Germany","Peru","Bulgaria","Morocco"],advanced:["West Germany","Peru"],standings:[{team:"West Germany",w:3,d:0,l:0,gf:10,ga:4,pts:6},{team:"Peru",w:2,d:0,l:1,gf:7,ga:5,pts:4},{team:"Bulgaria",w:0,d:1,l:2,gf:5,ga:9,pts:1},{team:"Morocco",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  // ========== 1974 ==========
+  {year:1974,group:"1",teams:["East Germany","West Germany","Chile","Australia"],advanced:["East Germany","West Germany"],standings:[{team:"East Germany",w:2,d:1,l:0,gf:4,ga:1,pts:5},{team:"West Germany",w:2,d:0,l:1,gf:4,ga:1,pts:4},{team:"Chile",w:0,d:2,l:1,gf:1,ga:2,pts:2},{team:"Australia",w:0,d:1,l:2,gf:0,ga:5,pts:1}]},
+  {year:1974,group:"2",teams:["Yugoslavia","Brazil","Scotland","Zaire"],advanced:["Yugoslavia","Brazil"],standings:[{team:"Yugoslavia",w:1,d:2,l:0,gf:10,ga:1,pts:4},{team:"Brazil",w:1,d:2,l:0,gf:3,ga:0,pts:4},{team:"Scotland",w:1,d:2,l:0,gf:3,ga:1,pts:4},{team:"Zaire",w:0,d:0,l:3,gf:0,ga:14,pts:0}]},
+  {year:1974,group:"3",teams:["Netherlands","Sweden","Bulgaria","Uruguay"],advanced:["Netherlands","Sweden"],standings:[{team:"Netherlands",w:2,d:1,l:0,gf:6,ga:1,pts:5},{team:"Sweden",w:1,d:2,l:0,gf:3,ga:0,pts:4},{team:"Bulgaria",w:0,d:2,l:1,gf:2,ga:5,pts:2},{team:"Uruguay",w:0,d:1,l:2,gf:1,ga:6,pts:1}]},
+  {year:1974,group:"4",teams:["Poland","Argentina","Italy","Haiti"],advanced:["Poland","Argentina"],standings:[{team:"Poland",w:3,d:0,l:0,gf:12,ga:3,pts:6},{team:"Argentina",w:1,d:1,l:1,gf:7,ga:5,pts:3},{team:"Italy",w:1,d:1,l:1,gf:5,ga:4,pts:3},{team:"Haiti",w:0,d:0,l:3,gf:2,ga:14,pts:0}]},
+  // ========== 1978 ==========
+  {year:1978,group:"1",teams:["Italy","Argentina","France","Hungary"],advanced:["Italy","Argentina"],standings:[{team:"Italy",w:3,d:0,l:0,gf:6,ga:2,pts:6},{team:"Argentina",w:2,d:0,l:1,gf:4,ga:3,pts:4},{team:"France",w:1,d:0,l:2,gf:5,ga:5,pts:2},{team:"Hungary",w:0,d:0,l:3,gf:3,ga:8,pts:0}]},
+  {year:1978,group:"2",teams:["Poland","West Germany","Tunisia","Mexico"],advanced:["Poland","West Germany"],standings:[{team:"Poland",w:2,d:1,l:0,gf:4,ga:1,pts:5},{team:"West Germany",w:1,d:2,l:0,gf:6,ga:0,pts:4},{team:"Tunisia",w:1,d:1,l:1,gf:3,ga:2,pts:3},{team:"Mexico",w:0,d:0,l:3,gf:2,ga:12,pts:0}]},
+  {year:1978,group:"3",teams:["Austria","Brazil","Spain","Sweden"],advanced:["Austria","Brazil"],standings:[{team:"Austria",w:2,d:0,l:1,gf:3,ga:2,pts:4},{team:"Brazil",w:1,d:2,l:0,gf:2,ga:1,pts:4},{team:"Spain",w:1,d:1,l:1,gf:2,ga:2,pts:3},{team:"Sweden",w:0,d:1,l:2,gf:1,ga:3,pts:1}]},
+  {year:1978,group:"4",teams:["Peru","Netherlands","Scotland","Iran"],advanced:["Peru","Netherlands"],standings:[{team:"Peru",w:2,d:1,l:0,gf:7,ga:2,pts:5},{team:"Netherlands",w:1,d:1,l:1,gf:5,ga:3,pts:3},{team:"Scotland",w:1,d:1,l:1,gf:5,ga:6,pts:3},{team:"Iran",w:0,d:1,l:2,gf:2,ga:8,pts:1}]},
+  // ========== 1982 ==========
+  {year:1982,group:"1",teams:["Poland","Italy","Cameroon","Peru"],advanced:["Poland","Italy"],standings:[{team:"Poland",w:1,d:2,l:0,gf:5,ga:1,pts:4},{team:"Italy",w:0,d:3,l:0,gf:2,ga:2,pts:3},{team:"Cameroon",w:0,d:3,l:0,gf:1,ga:1,pts:3},{team:"Peru",w:0,d:2,l:1,gf:2,ga:6,pts:2}]},
+  {year:1982,group:"2",teams:["West Germany","Austria","Algeria","Chile"],advanced:["West Germany","Austria"],standings:[{team:"West Germany",w:2,d:0,l:1,gf:6,ga:3,pts:4},{team:"Austria",w:2,d:0,l:1,gf:3,ga:1,pts:4},{team:"Algeria",w:2,d:0,l:1,gf:5,ga:5,pts:4},{team:"Chile",w:0,d:0,l:3,gf:3,ga:8,pts:0}]},
+  {year:1982,group:"3",teams:["Belgium","Argentina","Hungary","El Salvador"],advanced:["Belgium","Argentina"],standings:[{team:"Belgium",w:2,d:1,l:0,gf:3,ga:1,pts:5},{team:"Argentina",w:2,d:0,l:1,gf:6,ga:2,pts:4},{team:"Hungary",w:1,d:1,l:1,gf:12,ga:6,pts:3},{team:"El Salvador",w:0,d:0,l:3,gf:1,ga:13,pts:0}]},
+  {year:1982,group:"4",teams:["England","France","Czechoslovakia","Kuwait"],advanced:["England","France"],standings:[{team:"England",w:3,d:0,l:0,gf:6,ga:1,pts:6},{team:"France",w:1,d:1,l:1,gf:6,ga:5,pts:3},{team:"Czechoslovakia",w:0,d:2,l:1,gf:2,ga:4,pts:2},{team:"Kuwait",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  {year:1982,group:"5",teams:["Northern Ireland","Spain","Yugoslavia","Honduras"],advanced:["Northern Ireland","Spain"],standings:[{team:"Northern Ireland",w:1,d:2,l:0,gf:2,ga:1,pts:4},{team:"Spain",w:1,d:1,l:1,gf:3,ga:3,pts:3},{team:"Yugoslavia",w:1,d:1,l:1,gf:2,ga:2,pts:3},{team:"Honduras",w:0,d:2,l:1,gf:2,ga:3,pts:2}]},
+  {year:1982,group:"6",teams:["Brazil","Soviet Union","Scotland","New Zealand"],advanced:["Brazil","Soviet Union"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:10,ga:2,pts:6},{team:"Soviet Union",w:1,d:1,l:1,gf:6,ga:4,pts:3},{team:"Scotland",w:1,d:1,l:1,gf:8,ga:8,pts:3},{team:"New Zealand",w:0,d:0,l:3,gf:2,ga:12,pts:0}]},
+  // ========== 1986 ==========
+  {year:1986,group:"A",teams:["Argentina","Italy","Bulgaria","South Korea"],advanced:["Argentina","Italy"],standings:[{team:"Argentina",w:2,d:1,l:0,gf:6,ga:2,pts:5},{team:"Italy",w:1,d:2,l:0,gf:5,ga:4,pts:4},{team:"Bulgaria",w:0,d:2,l:1,gf:2,ga:4,pts:2},{team:"South Korea",w:0,d:1,l:2,gf:4,ga:7,pts:1}]},
+  {year:1986,group:"B",teams:["Mexico","Paraguay","Belgium","Iraq"],advanced:["Mexico","Paraguay"],standings:[{team:"Mexico",w:2,d:1,l:0,gf:4,ga:2,pts:5},{team:"Paraguay",w:1,d:2,l:0,gf:4,ga:3,pts:4},{team:"Belgium",w:1,d:1,l:1,gf:4,ga:3,pts:3},{team:"Iraq",w:0,d:0,l:3,gf:1,ga:5,pts:0}]},
+  {year:1986,group:"C",teams:["Soviet Union","France","Hungary","Canada"],advanced:["Soviet Union","France"],standings:[{team:"Soviet Union",w:2,d:1,l:0,gf:9,ga:1,pts:5},{team:"France",w:2,d:1,l:0,gf:5,ga:1,pts:5},{team:"Hungary",w:1,d:0,l:2,gf:2,ga:9,pts:2},{team:"Canada",w:0,d:0,l:3,gf:0,ga:5,pts:0}]},
+  {year:1986,group:"D",teams:["Brazil","Spain","Northern Ireland","Algeria"],advanced:["Brazil","Spain"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:5,ga:0,pts:6},{team:"Spain",w:2,d:0,l:1,gf:5,ga:2,pts:4},{team:"Northern Ireland",w:0,d:1,l:2,gf:2,ga:6,pts:1},{team:"Algeria",w:0,d:1,l:2,gf:1,ga:5,pts:1}]},
+  {year:1986,group:"E",teams:["Denmark","West Germany","Uruguay","Scotland"],advanced:["Denmark","West Germany"],standings:[{team:"Denmark",w:3,d:0,l:0,gf:9,ga:1,pts:6},{team:"West Germany",w:1,d:1,l:1,gf:3,ga:4,pts:3},{team:"Uruguay",w:0,d:2,l:1,gf:2,ga:7,pts:2},{team:"Scotland",w:0,d:1,l:2,gf:1,ga:3,pts:1}]},
+  {year:1986,group:"F",teams:["Morocco","England","Poland","Portugal"],advanced:["Morocco","England"],standings:[{team:"Morocco",w:1,d:2,l:0,gf:3,ga:1,pts:4},{team:"England",w:1,d:1,l:1,gf:3,ga:1,pts:3},{team:"Poland",w:1,d:1,l:1,gf:1,ga:3,pts:3},{team:"Portugal",w:1,d:0,l:2,gf:2,ga:4,pts:2}]},
+  // ========== 1990 ==========
+  {year:1990,group:"A",teams:["Italy","Czechoslovakia","Austria","United States"],advanced:["Italy","Czechoslovakia"],standings:[{team:"Italy",w:3,d:0,l:0,gf:4,ga:0,pts:6},{team:"Czechoslovakia",w:2,d:0,l:1,gf:6,ga:3,pts:4},{team:"Austria",w:1,d:0,l:2,gf:2,ga:3,pts:2},{team:"United States",w:0,d:0,l:3,gf:2,ga:8,pts:0}]},
+  {year:1990,group:"B",teams:["Cameroon","Romania","Argentina","Soviet Union"],advanced:["Cameroon","Romania"],standings:[{team:"Cameroon",w:2,d:0,l:1,gf:3,ga:5,pts:4},{team:"Romania",w:1,d:1,l:1,gf:4,ga:3,pts:3},{team:"Argentina",w:1,d:1,l:1,gf:3,ga:2,pts:3},{team:"Soviet Union",w:1,d:0,l:2,gf:4,ga:4,pts:2}]},
+  {year:1990,group:"C",teams:["Brazil","Costa Rica","Scotland","Sweden"],advanced:["Brazil","Costa Rica"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:4,ga:1,pts:6},{team:"Costa Rica",w:2,d:0,l:1,gf:3,ga:2,pts:4},{team:"Scotland",w:1,d:0,l:2,gf:2,ga:3,pts:2},{team:"Sweden",w:0,d:0,l:3,gf:3,ga:6,pts:0}]},
+  {year:1990,group:"D",teams:["West Germany","Yugoslavia","Colombia","United Arab Emirates"],advanced:["West Germany","Yugoslavia"],standings:[{team:"West Germany",w:2,d:1,l:0,gf:10,ga:3,pts:5},{team:"Yugoslavia",w:2,d:0,l:1,gf:6,ga:5,pts:4},{team:"Colombia",w:1,d:1,l:1,gf:3,ga:2,pts:3},{team:"United Arab Emirates",w:0,d:0,l:3,gf:2,ga:11,pts:0}]},
+  {year:1990,group:"E",teams:["Spain","Belgium","Uruguay","South Korea"],advanced:["Spain","Belgium"],standings:[{team:"Spain",w:2,d:1,l:0,gf:5,ga:2,pts:5},{team:"Belgium",w:2,d:0,l:1,gf:6,ga:3,pts:4},{team:"Uruguay",w:1,d:1,l:1,gf:2,ga:3,pts:3},{team:"South Korea",w:0,d:0,l:3,gf:1,ga:6,pts:0}]},
+  {year:1990,group:"F",teams:["England","Republic of Ireland","Netherlands","Egypt"],advanced:["England","Republic of Ireland"],standings:[{team:"England",w:1,d:2,l:0,gf:2,ga:1,pts:4},{team:"Republic of Ireland",w:0,d:3,l:0,gf:2,ga:2,pts:3},{team:"Netherlands",w:0,d:3,l:0,gf:2,ga:2,pts:3},{team:"Egypt",w:0,d:2,l:1,gf:1,ga:2,pts:2}]},
+  // ========== 1994 ==========
+  {year:1994,group:"A",teams:["Romania","Switzerland","United States","Colombia"],advanced:["Romania","Switzerland"],standings:[{team:"Romania",w:2,d:0,l:1,gf:5,ga:5,pts:6},{team:"Switzerland",w:1,d:1,l:1,gf:5,ga:4,pts:4},{team:"United States",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"Colombia",w:1,d:0,l:2,gf:4,ga:5,pts:3}]},
+  {year:1994,group:"B",teams:["Brazil","Sweden","Russia","Cameroon"],advanced:["Brazil","Sweden"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:6,ga:1,pts:7},{team:"Sweden",w:1,d:2,l:0,gf:6,ga:4,pts:5},{team:"Russia",w:1,d:0,l:2,gf:7,ga:6,pts:3},{team:"Cameroon",w:0,d:1,l:2,gf:3,ga:11,pts:1}]},
+  {year:1994,group:"C",teams:["Germany","Spain","South Korea","Bolivia"],advanced:["Germany","Spain"],standings:[{team:"Germany",w:2,d:1,l:0,gf:5,ga:3,pts:7},{team:"Spain",w:1,d:2,l:0,gf:6,ga:4,pts:5},{team:"South Korea",w:0,d:2,l:1,gf:4,ga:5,pts:2},{team:"Bolivia",w:0,d:1,l:2,gf:1,ga:4,pts:1}]},
+  {year:1994,group:"D",teams:["Nigeria","Bulgaria","Argentina","Greece"],advanced:["Nigeria","Bulgaria"],standings:[{team:"Nigeria",w:2,d:0,l:1,gf:6,ga:2,pts:6},{team:"Bulgaria",w:2,d:0,l:1,gf:6,ga:3,pts:6},{team:"Argentina",w:2,d:0,l:1,gf:6,ga:3,pts:6},{team:"Greece",w:0,d:0,l:3,gf:0,ga:10,pts:0}]},
+  {year:1994,group:"E",teams:["Mexico","Ireland","Italy","Norway"],advanced:["Mexico","Ireland"],standings:[{team:"Mexico",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"Ireland",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Italy",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Norway",w:1,d:1,l:1,gf:1,ga:1,pts:4}]},
+  {year:1994,group:"F",teams:["Netherlands","Saudi Arabia","Belgium","Morocco"],advanced:["Netherlands","Saudi Arabia"],standings:[{team:"Netherlands",w:2,d:0,l:1,gf:4,ga:3,pts:6},{team:"Saudi Arabia",w:2,d:0,l:1,gf:4,ga:3,pts:6},{team:"Belgium",w:2,d:0,l:1,gf:2,ga:1,pts:6},{team:"Morocco",w:0,d:0,l:3,gf:2,ga:5,pts:0}]},
+  // ========== 1998 ==========
+  {year:1998,group:"A",teams:["Brazil","Norway","Morocco","Scotland"],advanced:["Brazil","Norway"],standings:[{team:"Brazil",w:2,d:0,l:1,gf:6,ga:3,pts:6},{team:"Norway",w:1,d:2,l:0,gf:5,ga:4,pts:5},{team:"Morocco",w:1,d:1,l:1,gf:5,ga:5,pts:4},{team:"Scotland",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  {year:1998,group:"B",teams:["Italy","Chile","Cameroon","Austria"],advanced:["Italy","Chile"],standings:[{team:"Italy",w:2,d:1,l:0,gf:7,ga:3,pts:7},{team:"Chile",w:0,d:3,l:0,gf:4,ga:4,pts:3},{team:"Austria",w:0,d:2,l:1,gf:3,ga:4,pts:2},{team:"Cameroon",w:0,d:2,l:1,gf:2,ga:5,pts:2}]},
+  {year:1998,group:"C",teams:["France","Denmark","South Africa","Saudi Arabia"],advanced:["France","Denmark"],standings:[{team:"France",w:3,d:0,l:0,gf:9,ga:1,pts:9},{team:"Denmark",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"South Africa",w:0,d:2,l:1,gf:3,ga:6,pts:2},{team:"Saudi Arabia",w:0,d:1,l:2,gf:2,ga:7,pts:1}]},
+  {year:1998,group:"D",teams:["Nigeria","Paraguay","Spain","Bulgaria"],advanced:["Nigeria","Paraguay"],standings:[{team:"Nigeria",w:2,d:0,l:1,gf:5,ga:5,pts:6},{team:"Paraguay",w:1,d:2,l:0,gf:3,ga:1,pts:5},{team:"Spain",w:1,d:1,l:1,gf:8,ga:4,pts:4},{team:"Bulgaria",w:0,d:1,l:2,gf:1,ga:7,pts:1}]},
+  {year:1998,group:"E",teams:["Netherlands","Mexico","Belgium","South Korea"],advanced:["Netherlands","Mexico"],standings:[{team:"Netherlands",w:1,d:2,l:0,gf:7,ga:2,pts:5},{team:"Mexico",w:1,d:2,l:0,gf:7,ga:5,pts:5},{team:"Belgium",w:0,d:3,l:0,gf:3,ga:3,pts:3},{team:"South Korea",w:0,d:1,l:2,gf:2,ga:9,pts:1}]},
+  {year:1998,group:"F",teams:["Germany","Yugoslavia","Iran","United States"],advanced:["Germany","Yugoslavia"],standings:[{team:"Germany",w:2,d:1,l:0,gf:6,ga:2,pts:7},{team:"Yugoslavia",w:2,d:1,l:0,gf:4,ga:2,pts:7},{team:"Iran",w:1,d:0,l:2,gf:2,ga:4,pts:3},{team:"United States",w:0,d:0,l:3,gf:1,ga:5,pts:0}]},
+  {year:1998,group:"G",teams:["Romania","England","Colombia","Tunisia"],advanced:["Romania","England"],standings:[{team:"Romania",w:2,d:1,l:0,gf:4,ga:2,pts:7},{team:"England",w:2,d:0,l:1,gf:5,ga:2,pts:6},{team:"Colombia",w:1,d:0,l:2,gf:1,ga:3,pts:3},{team:"Tunisia",w:0,d:1,l:2,gf:1,ga:4,pts:1}]},
+  {year:1998,group:"H",teams:["Argentina","Croatia","Jamaica","Japan"],advanced:["Argentina","Croatia"],standings:[{team:"Argentina",w:3,d:0,l:0,gf:7,ga:0,pts:9},{team:"Croatia",w:2,d:0,l:1,gf:4,ga:2,pts:6},{team:"Jamaica",w:1,d:0,l:2,gf:3,ga:9,pts:3},{team:"Japan",w:0,d:0,l:3,gf:1,ga:4,pts:0}]},
+  // ========== 2002 ==========
+  {year:2002,group:"A",teams:["Denmark","Senegal","Uruguay","France"],advanced:["Denmark","Senegal"],standings:[{team:"Denmark",w:2,d:1,l:0,gf:5,ga:2,pts:7},{team:"Senegal",w:1,d:2,l:0,gf:5,ga:4,pts:5},{team:"Uruguay",w:0,d:2,l:1,gf:4,ga:5,pts:2},{team:"France",w:0,d:1,l:2,gf:0,ga:3,pts:1}]},
+  {year:2002,group:"B",teams:["Spain","Paraguay","South Africa","Slovenia"],advanced:["Spain","Paraguay"],standings:[{team:"Spain",w:3,d:0,l:0,gf:9,ga:4,pts:9},{team:"Paraguay",w:1,d:1,l:1,gf:6,ga:6,pts:4},{team:"South Africa",w:1,d:1,l:1,gf:5,ga:5,pts:4},{team:"Slovenia",w:0,d:0,l:3,gf:2,ga:7,pts:0}]},
+  {year:2002,group:"C",teams:["Brazil","Turkey","Costa Rica","China"],advanced:["Brazil","Turkey"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:11,ga:3,pts:9},{team:"Turkey",w:1,d:1,l:1,gf:5,ga:3,pts:4},{team:"Costa Rica",w:1,d:1,l:1,gf:5,ga:6,pts:4},{team:"China",w:0,d:0,l:3,gf:0,ga:9,pts:0}]},
+  {year:2002,group:"D",teams:["South Korea","United States","Portugal","Poland"],advanced:["South Korea","United States"],standings:[{team:"South Korea",w:2,d:1,l:0,gf:4,ga:1,pts:7},{team:"United States",w:1,d:1,l:1,gf:5,ga:6,pts:4},{team:"Portugal",w:1,d:0,l:2,gf:6,ga:4,pts:3},{team:"Poland",w:1,d:0,l:2,gf:3,ga:7,pts:3}]},
+  {year:2002,group:"E",teams:["Germany","Ireland","Cameroon","Saudi Arabia"],advanced:["Germany","Ireland"],standings:[{team:"Germany",w:2,d:1,l:0,gf:11,ga:1,pts:7},{team:"Ireland",w:1,d:2,l:0,gf:5,ga:2,pts:5},{team:"Cameroon",w:1,d:1,l:1,gf:2,ga:3,pts:4},{team:"Saudi Arabia",w:0,d:0,l:3,gf:0,ga:12,pts:0}]},
+  {year:2002,group:"F",teams:["Sweden","England","Argentina","Nigeria"],advanced:["Sweden","England"],standings:[{team:"Sweden",w:1,d:2,l:0,gf:4,ga:3,pts:5},{team:"England",w:1,d:2,l:0,gf:2,ga:1,pts:5},{team:"Argentina",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Nigeria",w:0,d:1,l:2,gf:1,ga:3,pts:1}]},
+  {year:2002,group:"G",teams:["Mexico","Italy","Croatia","Ecuador"],advanced:["Mexico","Italy"],standings:[{team:"Mexico",w:2,d:1,l:0,gf:4,ga:2,pts:7},{team:"Italy",w:1,d:1,l:1,gf:4,ga:3,pts:4},{team:"Croatia",w:1,d:0,l:2,gf:2,ga:3,pts:3},{team:"Ecuador",w:1,d:0,l:2,gf:2,ga:4,pts:3}]},
+  {year:2002,group:"H",teams:["Japan","Belgium","Russia","Tunisia"],advanced:["Japan","Belgium"],standings:[{team:"Japan",w:2,d:1,l:0,gf:5,ga:2,pts:7},{team:"Belgium",w:1,d:2,l:0,gf:6,ga:5,pts:5},{team:"Russia",w:1,d:0,l:2,gf:4,ga:4,pts:3},{team:"Tunisia",w:0,d:1,l:2,gf:1,ga:5,pts:1}]},
+  // ========== 2006 ==========
+  {year:2006,group:"A",teams:["Germany","Ecuador","Poland","Costa Rica"],advanced:["Germany","Ecuador"],standings:[{team:"Germany",w:3,d:0,l:0,gf:8,ga:2,pts:9},{team:"Ecuador",w:2,d:0,l:1,gf:5,ga:3,pts:6},{team:"Poland",w:1,d:0,l:2,gf:2,ga:4,pts:3},{team:"Costa Rica",w:0,d:0,l:3,gf:3,ga:9,pts:0}]},
+  {year:2006,group:"B",teams:["England","Sweden","Paraguay","Trinidad and Tobago"],advanced:["England","Sweden"],standings:[{team:"England",w:2,d:1,l:0,gf:5,ga:2,pts:7},{team:"Sweden",w:1,d:2,l:0,gf:3,ga:2,pts:5},{team:"Paraguay",w:1,d:0,l:2,gf:2,ga:2,pts:3},{team:"Trinidad and Tobago",w:0,d:1,l:2,gf:0,ga:4,pts:1}]},
+  {year:2006,group:"C",teams:["Argentina","Netherlands","Ivory Coast","Serbia and Montenegro"],advanced:["Argentina","Netherlands"],standings:[{team:"Argentina",w:2,d:1,l:0,gf:8,ga:1,pts:7},{team:"Netherlands",w:2,d:1,l:0,gf:3,ga:1,pts:7},{team:"Ivory Coast",w:1,d:0,l:2,gf:5,ga:6,pts:3},{team:"Serbia and Montenegro",w:0,d:0,l:3,gf:2,ga:10,pts:0}]},
+  {year:2006,group:"D",teams:["Portugal","Mexico","Angola","Iran"],advanced:["Portugal","Mexico"],standings:[{team:"Portugal",w:3,d:0,l:0,gf:5,ga:1,pts:9},{team:"Mexico",w:1,d:1,l:1,gf:4,ga:3,pts:4},{team:"Angola",w:0,d:2,l:1,gf:1,ga:2,pts:2},{team:"Iran",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  {year:2006,group:"E",teams:["Italy","Ghana","Czech Republic","United States"],advanced:["Italy","Ghana"],standings:[{team:"Italy",w:2,d:1,l:0,gf:5,ga:1,pts:7},{team:"Ghana",w:2,d:0,l:1,gf:4,ga:3,pts:6},{team:"Czech Republic",w:1,d:0,l:2,gf:3,ga:4,pts:3},{team:"United States",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  {year:2006,group:"F",teams:["Brazil","Australia","Croatia","Japan"],advanced:["Brazil","Australia"],standings:[{team:"Brazil",w:3,d:0,l:0,gf:7,ga:1,pts:9},{team:"Australia",w:1,d:1,l:1,gf:5,ga:5,pts:4},{team:"Croatia",w:0,d:2,l:1,gf:2,ga:3,pts:2},{team:"Japan",w:0,d:1,l:2,gf:2,ga:7,pts:1}]},
+  {year:2006,group:"G",teams:["Switzerland","France","South Korea","Togo"],advanced:["Switzerland","France"],standings:[{team:"Switzerland",w:2,d:1,l:0,gf:4,ga:0,pts:7},{team:"France",w:1,d:2,l:0,gf:3,ga:1,pts:5},{team:"South Korea",w:1,d:1,l:1,gf:3,ga:4,pts:4},{team:"Togo",w:0,d:0,l:3,gf:1,ga:6,pts:0}]},
+  {year:2006,group:"H",teams:["Spain","Ukraine","Tunisia","Saudi Arabia"],advanced:["Spain","Ukraine"],standings:[{team:"Spain",w:3,d:0,l:0,gf:8,ga:1,pts:9},{team:"Ukraine",w:2,d:0,l:1,gf:5,ga:4,pts:6},{team:"Tunisia",w:0,d:1,l:2,gf:3,ga:6,pts:1},{team:"Saudi Arabia",w:0,d:1,l:2,gf:2,ga:7,pts:1}]},
+  // ========== 2010 ==========
+  {year:2010,group:"A",teams:["Uruguay","Mexico","South Africa","France"],advanced:["Uruguay","Mexico"],standings:[{team:"Uruguay",w:2,d:1,l:0,gf:4,ga:0,pts:7},{team:"Mexico",w:1,d:1,l:1,gf:3,ga:2,pts:4},{team:"South Africa",w:1,d:1,l:1,gf:3,ga:5,pts:4},{team:"France",w:0,d:1,l:2,gf:1,ga:4,pts:1}]},
+  {year:2010,group:"B",teams:["Argentina","South Korea","Greece","Nigeria"],advanced:["Argentina","South Korea"],standings:[{team:"Argentina",w:3,d:0,l:0,gf:7,ga:1,pts:9},{team:"South Korea",w:1,d:1,l:1,gf:5,ga:6,pts:4},{team:"Greece",w:1,d:0,l:2,gf:2,ga:5,pts:3},{team:"Nigeria",w:0,d:1,l:2,gf:3,ga:5,pts:1}]},
+  {year:2010,group:"C",teams:["United States","England","Slovenia","Algeria"],advanced:["United States","England"],standings:[{team:"United States",w:1,d:2,l:0,gf:4,ga:3,pts:5},{team:"England",w:1,d:2,l:0,gf:2,ga:1,pts:5},{team:"Slovenia",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"Algeria",w:0,d:1,l:2,gf:0,ga:2,pts:1}]},
+  {year:2010,group:"D",teams:["Germany","Ghana","Australia","Serbia"],advanced:["Germany","Ghana"],standings:[{team:"Germany",w:2,d:0,l:1,gf:5,ga:1,pts:6},{team:"Ghana",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Australia",w:1,d:1,l:1,gf:3,ga:6,pts:4},{team:"Serbia",w:1,d:0,l:2,gf:2,ga:3,pts:3}]},
+  {year:2010,group:"E",teams:["Netherlands","Japan","Denmark","Cameroon"],advanced:["Netherlands","Japan"],standings:[{team:"Netherlands",w:3,d:0,l:0,gf:5,ga:1,pts:9},{team:"Japan",w:2,d:0,l:1,gf:4,ga:2,pts:6},{team:"Denmark",w:1,d:0,l:2,gf:3,ga:6,pts:3},{team:"Cameroon",w:0,d:0,l:3,gf:2,ga:5,pts:0}]},
+  {year:2010,group:"F",teams:["Paraguay","Slovakia","New Zealand","Italy"],advanced:["Paraguay","Slovakia"],standings:[{team:"Paraguay",w:1,d:2,l:0,gf:3,ga:1,pts:5},{team:"Slovakia",w:1,d:1,l:1,gf:4,ga:5,pts:4},{team:"New Zealand",w:0,d:3,l:0,gf:2,ga:2,pts:3},{team:"Italy",w:0,d:2,l:1,gf:4,ga:5,pts:2}]},
+  {year:2010,group:"G",teams:["Brazil","Portugal","Ivory Coast","North Korea"],advanced:["Brazil","Portugal"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:5,ga:2,pts:7},{team:"Portugal",w:1,d:2,l:0,gf:7,ga:0,pts:5},{team:"Ivory Coast",w:1,d:1,l:1,gf:4,ga:3,pts:4},{team:"North Korea",w:0,d:0,l:3,gf:1,ga:12,pts:0}]},
+  {year:2010,group:"H",teams:["Spain","Chile","Switzerland","Honduras"],advanced:["Spain","Chile"],standings:[{team:"Spain",w:2,d:0,l:1,gf:4,ga:2,pts:6},{team:"Chile",w:2,d:0,l:1,gf:3,ga:2,pts:6},{team:"Switzerland",w:1,d:1,l:1,gf:1,ga:1,pts:4},{team:"Honduras",w:0,d:1,l:2,gf:0,ga:3,pts:1}]},
+  // ========== 2014 ==========
+  {year:2014,group:"A",teams:["Brazil","Mexico","Croatia","Cameroon"],advanced:["Brazil","Mexico"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:7,ga:2,pts:7},{team:"Mexico",w:2,d:1,l:0,gf:4,ga:1,pts:7},{team:"Croatia",w:1,d:0,l:2,gf:6,ga:6,pts:3},{team:"Cameroon",w:0,d:0,l:3,gf:1,ga:9,pts:0}]},
+  {year:2014,group:"B",teams:["Netherlands","Chile","Spain","Australia"],advanced:["Netherlands","Chile"],standings:[{team:"Netherlands",w:3,d:0,l:0,gf:10,ga:3,pts:9},{team:"Chile",w:2,d:0,l:1,gf:5,ga:3,pts:6},{team:"Spain",w:1,d:0,l:2,gf:4,ga:7,pts:3},{team:"Australia",w:0,d:0,l:3,gf:3,ga:9,pts:0}]},
+  {year:2014,group:"C",teams:["Colombia","Greece","Ivory Coast","Japan"],advanced:["Colombia","Greece"],standings:[{team:"Colombia",w:3,d:0,l:0,gf:9,ga:2,pts:9},{team:"Greece",w:1,d:1,l:1,gf:2,ga:4,pts:4},{team:"Ivory Coast",w:1,d:0,l:2,gf:4,ga:5,pts:3},{team:"Japan",w:0,d:1,l:2,gf:2,ga:6,pts:1}]},
+  {year:2014,group:"D",teams:["Costa Rica","Uruguay","Italy","England"],advanced:["Costa Rica","Uruguay"],standings:[{team:"Costa Rica",w:2,d:1,l:0,gf:4,ga:1,pts:7},{team:"Uruguay",w:2,d:0,l:1,gf:4,ga:4,pts:6},{team:"Italy",w:1,d:0,l:2,gf:2,ga:3,pts:3},{team:"England",w:0,d:1,l:2,gf:2,ga:4,pts:1}]},
+  {year:2014,group:"E",teams:["France","Switzerland","Ecuador","Honduras"],advanced:["France","Switzerland"],standings:[{team:"France",w:2,d:1,l:0,gf:8,ga:2,pts:7},{team:"Switzerland",w:2,d:0,l:1,gf:7,ga:6,pts:6},{team:"Ecuador",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"Honduras",w:0,d:0,l:3,gf:1,ga:8,pts:0}]},
+  {year:2014,group:"F",teams:["Argentina","Nigeria","Bosnia and Herzegovina","Iran"],advanced:["Argentina","Nigeria"],standings:[{team:"Argentina",w:3,d:0,l:0,gf:6,ga:3,pts:9},{team:"Nigeria",w:1,d:1,l:1,gf:3,ga:3,pts:4},{team:"Bosnia and Herzegovina",w:1,d:0,l:2,gf:4,ga:4,pts:3},{team:"Iran",w:0,d:1,l:2,gf:1,ga:4,pts:1}]},
+  {year:2014,group:"G",teams:["Germany","United States","Portugal","Ghana"],advanced:["Germany","United States"],standings:[{team:"Germany",w:2,d:1,l:0,gf:7,ga:2,pts:7},{team:"United States",w:1,d:1,l:1,gf:4,ga:4,pts:4},{team:"Portugal",w:1,d:1,l:1,gf:4,ga:7,pts:4},{team:"Ghana",w:0,d:1,l:2,gf:4,ga:6,pts:1}]},
+  {year:2014,group:"H",teams:["Belgium","Algeria","Russia","South Korea"],advanced:["Belgium","Algeria"],standings:[{team:"Belgium",w:3,d:0,l:0,gf:4,ga:1,pts:9},{team:"Algeria",w:1,d:1,l:1,gf:6,ga:5,pts:4},{team:"Russia",w:0,d:2,l:1,gf:2,ga:3,pts:2},{team:"South Korea",w:0,d:1,l:2,gf:3,ga:6,pts:1}]},
+  // ========== 2018 ==========
+  {year:2018,group:"A",teams:["Uruguay","Russia","Saudi Arabia","Egypt"],advanced:["Uruguay","Russia"],standings:[{team:"Uruguay",w:3,d:0,l:0,gf:5,ga:0,pts:9},{team:"Russia",w:2,d:0,l:1,gf:8,ga:4,pts:6},{team:"Saudi Arabia",w:1,d:0,l:2,gf:2,ga:7,pts:3},{team:"Egypt",w:0,d:0,l:3,gf:2,ga:6,pts:0}]},
+  {year:2018,group:"B",teams:["Spain","Portugal","Iran","Morocco"],advanced:["Spain","Portugal"],standings:[{team:"Spain",w:1,d:2,l:0,gf:6,ga:5,pts:5},{team:"Portugal",w:1,d:2,l:0,gf:5,ga:4,pts:5},{team:"Iran",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Morocco",w:0,d:1,l:2,gf:2,ga:4,pts:1}]},
+  {year:2018,group:"C",teams:["France","Denmark","Peru","Australia"],advanced:["France","Denmark"],standings:[{team:"France",w:2,d:1,l:0,gf:3,ga:1,pts:7},{team:"Denmark",w:1,d:2,l:0,gf:2,ga:1,pts:5},{team:"Peru",w:1,d:0,l:2,gf:2,ga:2,pts:3},{team:"Australia",w:0,d:1,l:2,gf:2,ga:5,pts:1}]},
+  {year:2018,group:"D",teams:["Croatia","Argentina","Nigeria","Iceland"],advanced:["Croatia","Argentina"],standings:[{team:"Croatia",w:3,d:0,l:0,gf:7,ga:1,pts:9},{team:"Argentina",w:1,d:1,l:1,gf:3,ga:5,pts:4},{team:"Nigeria",w:1,d:0,l:2,gf:3,ga:4,pts:3},{team:"Iceland",w:0,d:1,l:2,gf:2,ga:5,pts:1}]},
+  {year:2018,group:"E",teams:["Brazil","Switzerland","Serbia","Costa Rica"],advanced:["Brazil","Switzerland"],standings:[{team:"Brazil",w:2,d:1,l:0,gf:5,ga:1,pts:7},{team:"Switzerland",w:1,d:2,l:0,gf:5,ga:4,pts:5},{team:"Serbia",w:1,d:0,l:2,gf:2,ga:4,pts:3},{team:"Costa Rica",w:0,d:1,l:2,gf:2,ga:5,pts:1}]},
+  {year:2018,group:"F",teams:["Sweden","Mexico","South Korea","Germany"],advanced:["Sweden","Mexico"],standings:[{team:"Sweden",w:2,d:0,l:1,gf:5,ga:2,pts:6},{team:"Mexico",w:2,d:0,l:1,gf:3,ga:4,pts:6},{team:"South Korea",w:1,d:0,l:2,gf:3,ga:3,pts:3},{team:"Germany",w:1,d:0,l:2,gf:2,ga:4,pts:3}]},
+  {year:2018,group:"G",teams:["Belgium","England","Tunisia","Panama"],advanced:["Belgium","England"],standings:[{team:"Belgium",w:3,d:0,l:0,gf:9,ga:2,pts:9},{team:"England",w:2,d:0,l:1,gf:8,ga:3,pts:6},{team:"Tunisia",w:1,d:0,l:2,gf:5,ga:8,pts:3},{team:"Panama",w:0,d:0,l:3,gf:2,ga:11,pts:0}]},
+  {year:2018,group:"H",teams:["Colombia","Japan","Senegal","Poland"],advanced:["Colombia","Japan"],standings:[{team:"Colombia",w:2,d:0,l:1,gf:5,ga:2,pts:6},{team:"Japan",w:1,d:1,l:1,gf:4,ga:4,pts:4},{team:"Senegal",w:1,d:1,l:1,gf:4,ga:4,pts:4},{team:"Poland",w:1,d:0,l:2,gf:2,ga:5,pts:3}]},
+  // ========== 2022 ==========
+  {year:2022,group:"A",teams:["Netherlands","Senegal","Ecuador","Qatar"],advanced:["Netherlands","Senegal"],standings:[{team:"Netherlands",w:2,d:1,l:0,gf:5,ga:1,pts:7},{team:"Senegal",w:2,d:0,l:1,gf:5,ga:4,pts:6},{team:"Ecuador",w:1,d:1,l:1,gf:4,ga:3,pts:4},{team:"Qatar",w:0,d:0,l:3,gf:1,ga:7,pts:0}]},
+  {year:2022,group:"B",teams:["England","United States","Iran","Wales"],advanced:["England","United States"],standings:[{team:"England",w:2,d:1,l:0,gf:9,ga:2,pts:7},{team:"United States",w:1,d:2,l:0,gf:2,ga:1,pts:5},{team:"Iran",w:1,d:0,l:2,gf:4,ga:7,pts:3},{team:"Wales",w:0,d:1,l:2,gf:1,ga:6,pts:1}]},
+  {year:2022,group:"C",teams:["Argentina","Poland","Mexico","Saudi Arabia"],advanced:["Argentina","Poland"],standings:[{team:"Argentina",w:2,d:0,l:1,gf:5,ga:2,pts:6},{team:"Poland",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Mexico",w:1,d:1,l:1,gf:2,ga:3,pts:4},{team:"Saudi Arabia",w:1,d:0,l:2,gf:3,ga:5,pts:3}]},
+  {year:2022,group:"D",teams:["France","Australia","Tunisia","Denmark"],advanced:["France","Australia"],standings:[{team:"France",w:2,d:0,l:1,gf:6,ga:3,pts:6},{team:"Australia",w:2,d:0,l:1,gf:3,ga:4,pts:6},{team:"Tunisia",w:1,d:1,l:1,gf:1,ga:1,pts:4},{team:"Denmark",w:0,d:1,l:2,gf:1,ga:3,pts:1}]},
+  {year:2022,group:"E",teams:["Japan","Spain","Germany","Costa Rica"],advanced:["Japan","Spain"],standings:[{team:"Japan",w:2,d:0,l:1,gf:4,ga:3,pts:6},{team:"Spain",w:1,d:1,l:1,gf:9,ga:3,pts:4},{team:"Germany",w:1,d:1,l:1,gf:6,ga:5,pts:4},{team:"Costa Rica",w:1,d:0,l:2,gf:3,ga:11,pts:3}]},
+  {year:2022,group:"F",teams:["Morocco","Croatia","Belgium","Canada"],advanced:["Morocco","Croatia"],standings:[{team:"Morocco",w:2,d:1,l:0,gf:4,ga:1,pts:7},{team:"Croatia",w:1,d:2,l:0,gf:4,ga:1,pts:5},{team:"Belgium",w:1,d:1,l:1,gf:1,ga:2,pts:4},{team:"Canada",w:0,d:0,l:3,gf:2,ga:7,pts:0}]},
+  {year:2022,group:"G",teams:["Brazil","Switzerland","Cameroon","Serbia"],advanced:["Brazil","Switzerland"],standings:[{team:"Brazil",w:2,d:0,l:1,gf:3,ga:1,pts:6},{team:"Switzerland",w:2,d:0,l:1,gf:4,ga:3,pts:6},{team:"Cameroon",w:1,d:1,l:1,gf:4,ga:4,pts:4},{team:"Serbia",w:0,d:1,l:2,gf:5,ga:8,pts:1}]},
+  {year:2022,group:"H",teams:["Portugal","South Korea","Uruguay","Ghana"],advanced:["Portugal","South Korea"],standings:[{team:"Portugal",w:2,d:0,l:1,gf:6,ga:4,pts:6},{team:"South Korea",w:1,d:1,l:1,gf:4,ga:4,pts:4},{team:"Uruguay",w:1,d:1,l:1,gf:2,ga:2,pts:4},{team:"Ghana",w:1,d:0,l:2,gf:5,ga:7,pts:3}]}
+];
+
+const ROUND_LABELS = {"R16":"Round of 16","QF":"Quarter-Final","SF":"Semi-Final","3rd":"Third-Place Match","Final":"Final"};
+const KNOCKOUTS = [
+  // 1986
+  {year:1986,round:"R16",t1:"Argentina",t2:"Uruguay",score:"1-0",w:"Argentina"},
+  {year:1986,round:"R16",t1:"England",t2:"Paraguay",score:"3-0",w:"England"},
+  {year:1986,round:"R16",t1:"Denmark",t2:"Spain",score:"1-5",w:"Spain"},
+  {year:1986,round:"R16",t1:"Soviet Union",t2:"Belgium",score:"3-4 aet",w:"Belgium"},
+  {year:1986,round:"R16",t1:"Brazil",t2:"Poland",score:"4-0",w:"Brazil"},
+  {year:1986,round:"R16",t1:"Italy",t2:"France",score:"0-2",w:"France"},
+  {year:1986,round:"R16",t1:"Morocco",t2:"West Germany",score:"0-1",w:"West Germany"},
+  {year:1986,round:"R16",t1:"Mexico",t2:"Bulgaria",score:"2-0",w:"Mexico"},
+  {year:1986,round:"QF",t1:"Argentina",t2:"England",score:"2-1",w:"Argentina"},
+  {year:1986,round:"QF",t1:"Spain",t2:"Belgium",score:"1-1 (4-5 pen)",w:"Belgium"},
+  {year:1986,round:"QF",t1:"Brazil",t2:"France",score:"1-1 (3-4 pen)",w:"France"},
+  {year:1986,round:"QF",t1:"West Germany",t2:"Mexico",score:"0-0 (4-1 pen)",w:"West Germany"},
+  {year:1986,round:"SF",t1:"Argentina",t2:"Belgium",score:"2-0",w:"Argentina"},
+  {year:1986,round:"SF",t1:"France",t2:"West Germany",score:"0-2",w:"West Germany"},
+  {year:1986,round:"3rd",t1:"France",t2:"Belgium",score:"4-2 aet",w:"France"},
+  {year:1986,round:"Final",t1:"Argentina",t2:"West Germany",score:"3-2",w:"Argentina"},
+  // 1990
+  {year:1990,round:"R16",t1:"Brazil",t2:"Argentina",score:"0-1",w:"Argentina"},
+  {year:1990,round:"R16",t1:"Spain",t2:"Yugoslavia",score:"1-2 aet",w:"Yugoslavia"},
+  {year:1990,round:"R16",t1:"Republic of Ireland",t2:"Romania",score:"0-0 (5-4 pen)",w:"Republic of Ireland"},
+  {year:1990,round:"R16",t1:"Italy",t2:"Uruguay",score:"2-0",w:"Italy"},
+  {year:1990,round:"R16",t1:"Czechoslovakia",t2:"Costa Rica",score:"4-1",w:"Czechoslovakia"},
+  {year:1990,round:"R16",t1:"West Germany",t2:"Netherlands",score:"2-1",w:"West Germany"},
+  {year:1990,round:"R16",t1:"Cameroon",t2:"Colombia",score:"2-1 aet",w:"Cameroon"},
+  {year:1990,round:"R16",t1:"England",t2:"Belgium",score:"1-0 aet",w:"England"},
+  {year:1990,round:"QF",t1:"Argentina",t2:"Yugoslavia",score:"0-0 (3-2 pen)",w:"Argentina"},
+  {year:1990,round:"QF",t1:"Republic of Ireland",t2:"Italy",score:"0-1",w:"Italy"},
+  {year:1990,round:"QF",t1:"Czechoslovakia",t2:"West Germany",score:"0-1",w:"West Germany"},
+  {year:1990,round:"QF",t1:"Cameroon",t2:"England",score:"2-3 aet",w:"England"},
+  {year:1990,round:"SF",t1:"Argentina",t2:"Italy",score:"1-1 (4-3 pen)",w:"Argentina"},
+  {year:1990,round:"SF",t1:"West Germany",t2:"England",score:"1-1 (4-3 pen)",w:"West Germany"},
+  {year:1990,round:"3rd",t1:"Italy",t2:"England",score:"2-1",w:"Italy"},
+  {year:1990,round:"Final",t1:"West Germany",t2:"Argentina",score:"1-0",w:"West Germany"},
+  // 1994
+  {year:1994,round:"R16",t1:"Romania",t2:"Argentina",score:"3-2",w:"Romania"},
+  {year:1994,round:"R16",t1:"Saudi Arabia",t2:"Sweden",score:"1-3",w:"Sweden"},
+  {year:1994,round:"R16",t1:"Netherlands",t2:"Ireland",score:"2-0",w:"Netherlands"},
+  {year:1994,round:"R16",t1:"Brazil",t2:"United States",score:"1-0",w:"Brazil"},
+  {year:1994,round:"R16",t1:"Mexico",t2:"Bulgaria",score:"1-1 (1-3 pen)",w:"Bulgaria"},
+  {year:1994,round:"R16",t1:"Germany",t2:"Belgium",score:"3-2",w:"Germany"},
+  {year:1994,round:"R16",t1:"Nigeria",t2:"Italy",score:"1-2 aet",w:"Italy"},
+  {year:1994,round:"R16",t1:"Spain",t2:"Switzerland",score:"3-0",w:"Spain"},
+  {year:1994,round:"QF",t1:"Romania",t2:"Sweden",score:"2-2 (4-5 pen)",w:"Sweden"},
+  {year:1994,round:"QF",t1:"Netherlands",t2:"Brazil",score:"2-3",w:"Brazil"},
+  {year:1994,round:"QF",t1:"Bulgaria",t2:"Germany",score:"2-1",w:"Bulgaria"},
+  {year:1994,round:"QF",t1:"Italy",t2:"Spain",score:"2-1",w:"Italy"},
+  {year:1994,round:"SF",t1:"Sweden",t2:"Brazil",score:"0-1",w:"Brazil"},
+  {year:1994,round:"SF",t1:"Bulgaria",t2:"Italy",score:"1-2",w:"Italy"},
+  {year:1994,round:"3rd",t1:"Sweden",t2:"Bulgaria",score:"4-0",w:"Sweden"},
+  {year:1994,round:"Final",t1:"Brazil",t2:"Italy",score:"0-0 (3-2 pen)",w:"Brazil"},
+  // 1998
+  {year:1998,round:"R16",t1:"Brazil",t2:"Chile",score:"4-1",w:"Brazil"},
+  {year:1998,round:"R16",t1:"Nigeria",t2:"Denmark",score:"1-4",w:"Denmark"},
+  {year:1998,round:"R16",t1:"Netherlands",t2:"Yugoslavia",score:"2-1",w:"Netherlands"},
+  {year:1998,round:"R16",t1:"Argentina",t2:"England",score:"2-2 (4-3 pen)",w:"Argentina"},
+  {year:1998,round:"R16",t1:"Italy",t2:"Norway",score:"1-0",w:"Italy"},
+  {year:1998,round:"R16",t1:"France",t2:"Paraguay",score:"1-0 aet",w:"France"},
+  {year:1998,round:"R16",t1:"Germany",t2:"Mexico",score:"2-1",w:"Germany"},
+  {year:1998,round:"R16",t1:"Romania",t2:"Croatia",score:"0-1",w:"Croatia"},
+  {year:1998,round:"QF",t1:"Brazil",t2:"Denmark",score:"3-2",w:"Brazil"},
+  {year:1998,round:"QF",t1:"Netherlands",t2:"Argentina",score:"2-1",w:"Netherlands"},
+  {year:1998,round:"QF",t1:"Italy",t2:"France",score:"0-0 (3-4 pen)",w:"France"},
+  {year:1998,round:"QF",t1:"Germany",t2:"Croatia",score:"0-3",w:"Croatia"},
+  {year:1998,round:"SF",t1:"Brazil",t2:"Netherlands",score:"1-1 (4-2 pen)",w:"Brazil"},
+  {year:1998,round:"SF",t1:"France",t2:"Croatia",score:"2-1",w:"France"},
+  {year:1998,round:"3rd",t1:"Netherlands",t2:"Croatia",score:"1-2",w:"Croatia"},
+  {year:1998,round:"Final",t1:"Brazil",t2:"France",score:"0-3",w:"France"},
+  // 2002
+  {year:2002,round:"R16",t1:"Germany",t2:"Paraguay",score:"1-0",w:"Germany"},
+  {year:2002,round:"R16",t1:"Mexico",t2:"United States",score:"0-2",w:"United States"},
+  {year:2002,round:"R16",t1:"Spain",t2:"Republic of Ireland",score:"1-1 (3-2 pen)",w:"Spain"},
+  {year:2002,round:"R16",t1:"South Korea",t2:"Italy",score:"2-1 aet",w:"South Korea"},
+  {year:2002,round:"R16",t1:"Denmark",t2:"England",score:"0-3",w:"England"},
+  {year:2002,round:"R16",t1:"Brazil",t2:"Belgium",score:"2-0",w:"Brazil"},
+  {year:2002,round:"R16",t1:"Sweden",t2:"Senegal",score:"1-2 aet",w:"Senegal"},
+  {year:2002,round:"R16",t1:"Japan",t2:"Turkey",score:"0-1",w:"Turkey"},
+  {year:2002,round:"QF",t1:"Germany",t2:"United States",score:"1-0",w:"Germany"},
+  {year:2002,round:"QF",t1:"Spain",t2:"South Korea",score:"0-0 (3-5 pen)",w:"South Korea"},
+  {year:2002,round:"QF",t1:"England",t2:"Brazil",score:"1-2",w:"Brazil"},
+  {year:2002,round:"QF",t1:"Senegal",t2:"Turkey",score:"0-1 aet",w:"Turkey"},
+  {year:2002,round:"SF",t1:"Germany",t2:"South Korea",score:"1-0",w:"Germany"},
+  {year:2002,round:"SF",t1:"Brazil",t2:"Turkey",score:"1-0",w:"Brazil"},
+  {year:2002,round:"3rd",t1:"South Korea",t2:"Turkey",score:"2-3",w:"Turkey"},
+  {year:2002,round:"Final",t1:"Germany",t2:"Brazil",score:"0-2",w:"Brazil"},
+  // 2006
+  {year:2006,round:"R16",t1:"Germany",t2:"Sweden",score:"2-0",w:"Germany"},
+  {year:2006,round:"R16",t1:"Argentina",t2:"Mexico",score:"2-1 aet",w:"Argentina"},
+  {year:2006,round:"R16",t1:"Italy",t2:"Australia",score:"1-0",w:"Italy"},
+  {year:2006,round:"R16",t1:"Switzerland",t2:"Ukraine",score:"0-0 (0-3 pen)",w:"Ukraine"},
+  {year:2006,round:"R16",t1:"England",t2:"Ecuador",score:"1-0",w:"England"},
+  {year:2006,round:"R16",t1:"Portugal",t2:"Netherlands",score:"1-0",w:"Portugal"},
+  {year:2006,round:"R16",t1:"Brazil",t2:"Ghana",score:"3-0",w:"Brazil"},
+  {year:2006,round:"R16",t1:"Spain",t2:"France",score:"1-3",w:"France"},
+  {year:2006,round:"QF",t1:"Germany",t2:"Argentina",score:"1-1 (4-2 pen)",w:"Germany"},
+  {year:2006,round:"QF",t1:"Italy",t2:"Ukraine",score:"3-0",w:"Italy"},
+  {year:2006,round:"QF",t1:"England",t2:"Portugal",score:"0-0 (1-3 pen)",w:"Portugal"},
+  {year:2006,round:"QF",t1:"Brazil",t2:"France",score:"0-1",w:"France"},
+  {year:2006,round:"SF",t1:"Germany",t2:"Italy",score:"0-2 aet",w:"Italy"},
+  {year:2006,round:"SF",t1:"Portugal",t2:"France",score:"0-1",w:"France"},
+  {year:2006,round:"3rd",t1:"Germany",t2:"Portugal",score:"3-1",w:"Germany"},
+  {year:2006,round:"Final",t1:"Italy",t2:"France",score:"1-1 (5-3 pen)",w:"Italy"},
+  // 2010
+  {year:2010,round:"R16",t1:"Uruguay",t2:"South Korea",score:"2-1",w:"Uruguay"},
+  {year:2010,round:"R16",t1:"United States",t2:"Ghana",score:"1-2 aet",w:"Ghana"},
+  {year:2010,round:"R16",t1:"Netherlands",t2:"Slovakia",score:"2-1",w:"Netherlands"},
+  {year:2010,round:"R16",t1:"Brazil",t2:"Chile",score:"3-0",w:"Brazil"},
+  {year:2010,round:"R16",t1:"Argentina",t2:"Mexico",score:"3-1",w:"Argentina"},
+  {year:2010,round:"R16",t1:"Germany",t2:"England",score:"4-1",w:"Germany"},
+  {year:2010,round:"R16",t1:"Paraguay",t2:"Japan",score:"0-0 (5-3 pen)",w:"Paraguay"},
+  {year:2010,round:"R16",t1:"Spain",t2:"Portugal",score:"1-0",w:"Spain"},
+  {year:2010,round:"QF",t1:"Uruguay",t2:"Ghana",score:"1-1 (4-2 pen)",w:"Uruguay"},
+  {year:2010,round:"QF",t1:"Netherlands",t2:"Brazil",score:"2-1",w:"Netherlands"},
+  {year:2010,round:"QF",t1:"Argentina",t2:"Germany",score:"0-4",w:"Germany"},
+  {year:2010,round:"QF",t1:"Paraguay",t2:"Spain",score:"0-1",w:"Spain"},
+  {year:2010,round:"SF",t1:"Uruguay",t2:"Netherlands",score:"2-3",w:"Netherlands"},
+  {year:2010,round:"SF",t1:"Germany",t2:"Spain",score:"0-1",w:"Spain"},
+  {year:2010,round:"3rd",t1:"Uruguay",t2:"Germany",score:"2-3",w:"Germany"},
+  {year:2010,round:"Final",t1:"Netherlands",t2:"Spain",score:"0-1 aet",w:"Spain"},
+  // 2014
+  {year:2014,round:"R16",t1:"Brazil",t2:"Chile",score:"1-1 (3-2 pen)",w:"Brazil"},
+  {year:2014,round:"R16",t1:"Colombia",t2:"Uruguay",score:"2-0",w:"Colombia"},
+  {year:2014,round:"R16",t1:"France",t2:"Nigeria",score:"2-0",w:"France"},
+  {year:2014,round:"R16",t1:"Germany",t2:"Algeria",score:"2-1 aet",w:"Germany"},
+  {year:2014,round:"R16",t1:"Netherlands",t2:"Mexico",score:"2-1",w:"Netherlands"},
+  {year:2014,round:"R16",t1:"Costa Rica",t2:"Greece",score:"1-1 (5-3 pen)",w:"Costa Rica"},
+  {year:2014,round:"R16",t1:"Argentina",t2:"Switzerland",score:"1-0 aet",w:"Argentina"},
+  {year:2014,round:"R16",t1:"Belgium",t2:"United States",score:"2-1 aet",w:"Belgium"},
+  {year:2014,round:"QF",t1:"Brazil",t2:"Colombia",score:"2-1",w:"Brazil"},
+  {year:2014,round:"QF",t1:"France",t2:"Germany",score:"0-1",w:"Germany"},
+  {year:2014,round:"QF",t1:"Netherlands",t2:"Costa Rica",score:"0-0 (4-3 pen)",w:"Netherlands"},
+  {year:2014,round:"QF",t1:"Argentina",t2:"Belgium",score:"1-0",w:"Argentina"},
+  {year:2014,round:"SF",t1:"Brazil",t2:"Germany",score:"1-7",w:"Germany"},
+  {year:2014,round:"SF",t1:"Netherlands",t2:"Argentina",score:"0-0 (2-4 pen)",w:"Argentina"},
+  {year:2014,round:"3rd",t1:"Brazil",t2:"Netherlands",score:"0-3",w:"Netherlands"},
+  {year:2014,round:"Final",t1:"Germany",t2:"Argentina",score:"1-0 aet",w:"Germany"},
+  // 2018
+  {year:2018,round:"R16",t1:"Uruguay",t2:"Portugal",score:"2-1",w:"Uruguay"},
+  {year:2018,round:"R16",t1:"France",t2:"Argentina",score:"4-3",w:"France"},
+  {year:2018,round:"R16",t1:"Brazil",t2:"Mexico",score:"2-0",w:"Brazil"},
+  {year:2018,round:"R16",t1:"Belgium",t2:"Japan",score:"3-2",w:"Belgium"},
+  {year:2018,round:"R16",t1:"Spain",t2:"Russia",score:"1-1 (3-4 pen)",w:"Russia"},
+  {year:2018,round:"R16",t1:"Croatia",t2:"Denmark",score:"1-1 (3-2 pen)",w:"Croatia"},
+  {year:2018,round:"R16",t1:"Sweden",t2:"Switzerland",score:"1-0",w:"Sweden"},
+  {year:2018,round:"R16",t1:"Colombia",t2:"England",score:"1-1 (3-4 pen)",w:"England"},
+  {year:2018,round:"QF",t1:"Uruguay",t2:"France",score:"0-2",w:"France"},
+  {year:2018,round:"QF",t1:"Brazil",t2:"Belgium",score:"1-2",w:"Belgium"},
+  {year:2018,round:"QF",t1:"Russia",t2:"Croatia",score:"2-2 (3-4 pen)",w:"Croatia"},
+  {year:2018,round:"QF",t1:"Sweden",t2:"England",score:"0-2",w:"England"},
+  {year:2018,round:"SF",t1:"France",t2:"Belgium",score:"1-0",w:"France"},
+  {year:2018,round:"SF",t1:"Croatia",t2:"England",score:"2-1 aet",w:"Croatia"},
+  {year:2018,round:"3rd",t1:"Belgium",t2:"England",score:"2-0",w:"Belgium"},
+  {year:2018,round:"Final",t1:"France",t2:"Croatia",score:"4-2",w:"France"},
+  // 2022
+  {year:2022,round:"R16",t1:"Netherlands",t2:"United States",score:"3-1",w:"Netherlands"},
+  {year:2022,round:"R16",t1:"Argentina",t2:"Australia",score:"2-1",w:"Argentina"},
+  {year:2022,round:"R16",t1:"Japan",t2:"Croatia",score:"1-1 (1-3 pen)",w:"Croatia"},
+  {year:2022,round:"R16",t1:"Brazil",t2:"South Korea",score:"4-1",w:"Brazil"},
+  {year:2022,round:"R16",t1:"England",t2:"Senegal",score:"3-0",w:"England"},
+  {year:2022,round:"R16",t1:"France",t2:"Poland",score:"3-1",w:"France"},
+  {year:2022,round:"R16",t1:"Morocco",t2:"Spain",score:"0-0 (3-0 pen)",w:"Morocco"},
+  {year:2022,round:"R16",t1:"Portugal",t2:"Switzerland",score:"6-1",w:"Portugal"},
+  {year:2022,round:"QF",t1:"Netherlands",t2:"Argentina",score:"2-2 (3-4 pen)",w:"Argentina"},
+  {year:2022,round:"QF",t1:"Croatia",t2:"Brazil",score:"1-1 (4-2 pen)",w:"Croatia"},
+  {year:2022,round:"QF",t1:"England",t2:"France",score:"1-2",w:"France"},
+  {year:2022,round:"QF",t1:"Morocco",t2:"Portugal",score:"1-0",w:"Morocco"},
+  {year:2022,round:"SF",t1:"Argentina",t2:"Croatia",score:"3-0",w:"Argentina"},
+  {year:2022,round:"SF",t1:"France",t2:"Morocco",score:"2-0",w:"France"},
+  {year:2022,round:"3rd",t1:"Croatia",t2:"Morocco",score:"2-1",w:"Croatia"},
+  {year:2022,round:"Final",t1:"Argentina",t2:"France",score:"3-3 (4-2 pen)",w:"Argentina"}
+];
+
+// Precompute repeat knockout pairings
+const _pairCount = {};
+KNOCKOUTS.forEach(k => {
+  const key = [k.t1, k.t2].sort().join('|');
+  _pairCount[key] = (_pairCount[key] || 0) + 1;
+});
+function isRepeatPairing(k) {
+  return _pairCount[[k.t1, k.t2].sort().join('|')] > 1;
+}
+
+const FLAGS = {
+  "Argentina":"🇦🇷","Australia":"🇦🇺","Austria":"🇦🇹","Belgium":"🇧🇪","Bolivia":"🇧🇴",
+  "Bosnia and Herzegovina":"🇧🇦","Brazil":"🇧🇷","Bulgaria":"🇧🇬","Cameroon":"🇨🇲","Canada":"🇨🇦",
+  "Chile":"🇨🇱","China":"🇨🇳","Colombia":"🇨🇴","Costa Rica":"🇨🇷","Croatia":"🇭🇷",
+  "Czech Republic":"🇨🇿","Denmark":"🇩🇰","Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻",
+  "England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","France":"🇫🇷","Germany":"🇩🇪","West Germany":"🇩🇪","Ghana":"🇬🇭",
+  "Greece":"🇬🇷","Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺","Iceland":"🇮🇸",
+  "Iran":"🇮🇷","Iraq":"🇮🇶","Ireland":"🇮🇪","Republic of Ireland":"🇮🇪","Israel":"🇮🇱",
+  "Italy":"🇮🇹","Ivory Coast":"🇨🇮","Jamaica":"🇯🇲","Japan":"🇯🇵","Kuwait":"🇰🇼",
+  "Mexico":"🇲🇽","Morocco":"🇲🇦","Netherlands":"🇳🇱","New Zealand":"🇳🇿","Nigeria":"🇳🇬",
+  "North Korea":"🇰🇵","Norway":"🇳🇴","Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪",
+  "Poland":"🇵🇱","Portugal":"🇵🇹","Qatar":"🇶🇦","Romania":"🇷🇴","Russia":"🇷🇺",
+  "Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳","Serbia":"🇷🇸","Slovakia":"🇸🇰",
+  "Slovenia":"🇸🇮","South Africa":"🇿🇦","South Korea":"🇰🇷","Spain":"🇪🇸","Sweden":"🇸🇪",
+  "Switzerland":"🇨🇭","Togo":"🇹🇬","Trinidad and Tobago":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷",
+  "Ukraine":"🇺🇦","United Arab Emirates":"🇦🇪","United States":"🇺🇸","Uruguay":"🇺🇾",
+  "Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Algeria":"🇩🇿","Angola":"🇦🇴","Cote d'Ivoire":"🇨🇮","Curacao":"🇨🇼",
+  "DR Congo":"🇨🇩","Cape Verde":"🇨🇻","Jordan":"🇯🇴","Uzbekistan":"🇺🇿","Czech Republic":"🇨🇿"
+};
+function flag(t) { return FLAGS[t] || ''; }
+
+// Game state
+let mode = 'easy'; // 'easy' or 'hard'
+let gameGroups = [];
+let gameKOs = [];
+let currentRound = 0;
+let score = 0;
+let selected = [];
+let koSelected = null;
+let timerInterval = null;
+let timeLeft = 8000;
+let roundResults = [];
+let answered = false;
+let eliminated = false;
+let groupRounds, koRounds, totalRounds, hardGate;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function pickGroups(count) {
+  const pre70 = GROUPS.filter(g => g.year < 1970);
+  const post70 = GROUPS.filter(g => g.year >= 1970);
+  const MAX_PER_WC = 3;
+  const NEED_PRE70 = 2;
+
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const pool = [];
+    const wcCount = {};
+    const shuffledPre = shuffle(pre70);
+    const shuffledPost = shuffle(post70);
+
+    for (const g of shuffledPre) {
+      if (pool.length >= NEED_PRE70) break;
+      const c = wcCount[g.year] || 0;
+      if (c < MAX_PER_WC) { pool.push(g); wcCount[g.year] = c + 1; }
+    }
+    if (pool.length < NEED_PRE70) continue;
+
+    const rest = shuffle([...shuffledPost, ...shuffledPre.filter(g => !pool.includes(g))]);
+    for (const g of rest) {
+      if (pool.length >= count) break;
+      const c = wcCount[g.year] || 0;
+      if (c < MAX_PER_WC) { pool.push(g); wcCount[g.year] = c + 1; }
+    }
+    if (pool.length === count) return shuffle(pool);
+  }
+  return shuffle(GROUPS).slice(0, count);
+}
+
+function pickKnockouts() {
+  const r16qf = shuffle(KNOCKOUTS.filter(m => m.round === "R16" || m.round === "QF"));
+  const sf = shuffle(KNOCKOUTS.filter(m => m.round === "SF"));
+  const finals3rd = shuffle(KNOCKOUTS.filter(m => m.round === "Final" || m.round === "3rd"));
+  return [...r16qf.slice(0, 3), sf[0], finals3rd[0]];
+}
+
+function startGame(m) {
+  mode = m || 'easy';
+  eliminated = false;
+  if (mode === 'easy') {
+    groupRounds = 8; koRounds = 5; hardGate = 0;
+  } else {
+    groupRounds = 12; koRounds = 5; hardGate = 24;
+  }
+  totalRounds = groupRounds + koRounds;
+  gameGroups = pickGroups(groupRounds);
+  gameKOs = pickKnockouts();
+  currentRound = 0;
+  score = 0;
+  roundResults = [];
+  showQuestion();
+}
+
+function showQuestion() {
+  selected = [];
+  answered = false;
+  const g = gameGroups[currentRound];
+  const shuffledTeams = shuffle(g.teams);
+
+  document.getElementById('round-info').textContent = `Round ${currentRound + 1} / ${totalRounds}`;
+  document.getElementById('score-display').textContent = `${score} pts`;
+
+  const grid = document.getElementById('team-grid');
+  grid.innerHTML = shuffledTeams.map(t =>
+    `<div class="team-card" data-team="${t}" onclick="selectTeam(this)">${flag(t)} ${t}</div>`
+  ).join('');
+
+  showScreen('question-screen');
+}
+
+function selectTeam(el) {
+  if (answered) return;
+  const team = el.dataset.team;
+  if (selected.includes(team)) {
+    selected = selected.filter(t => t !== team);
+    el.classList.remove('selected');
+  } else if (selected.length < 2) {
+    selected.push(team);
+    el.classList.add('selected');
+  }
+  document.getElementById('confirm-btn').disabled = selected.length !== 2;
+}
+
+function submitAnswer() {
+  if (answered) return;
+  answered = true;
+
+  const g = gameGroups[currentRound];
+  const correct = g.advanced;
+  let pts = 0;
+  let hits = selected.filter(t => correct.includes(t)).length;
+  if (hits === 2) pts = 3;
+  else if (hits === 1) pts = 1;
+  score += pts;
+
+  roundResults.push({ group: g, selected: [...selected], pts, hits });
+  showResult(g, pts);
+}
+
+function showResult(g, pts) {
+  document.getElementById('result-round-info').textContent = `Round ${currentRound + 1} / ${totalRounds}`;
+  document.getElementById('result-score-display').textContent = `${score} pts`;
+  document.getElementById('result-year').textContent = `${g.year} World Cup \u2022 Group ${g.group}`;
+
+  const ptEl = document.getElementById('result-points');
+  ptEl.textContent = pts === 0 ? '+0' : pts === 1 ? '+1' : '+3';
+  ptEl.className = 'result-points pts-' + pts;
+
+  // Team cards with result coloring
+  const correct = g.advanced;
+  const grid = document.getElementById('result-team-grid');
+  grid.innerHTML = g.teams.map(t => {
+    const wasSelected = selected.includes(t);
+    const isCorrect = correct.includes(t);
+    let cls = 'team-card disabled ';
+    if (wasSelected && isCorrect) cls += 'correct';
+    else if (wasSelected && !isCorrect) cls += 'wrong';
+    else if (!wasSelected && isCorrect) cls += 'missed';
+    else cls += 'neutral';
+    return `<div class="${cls}">${flag(t)} ${t}</div>`;
+  }).join('');
+
+  // Standings table
+  const table = document.getElementById('standings-table');
+  table.innerHTML = `
+    <tr><th>Team</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr>
+    ${g.standings.map((s, i) => {
+      const cls = i < 2 ? 'advanced' : 'eliminated';
+      return `<tr class="${cls}"><td>${flag(s.team)} ${s.team}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.pts}</td></tr>`;
+    }).join('')}
+  `;
+
+  const nextBtn = document.getElementById('next-btn');
+  const isLastGroup = currentRound === groupRounds - 1;
+  nextBtn.textContent = isLastGroup ? (mode === 'hard' ? 'Check Qualification' : 'Enter Knockouts') : 'Next';
+  nextBtn.onclick = () => {
+    currentRound++;
+    if (currentRound < groupRounds) {
+      showQuestion();
+    } else if (currentRound === groupRounds && mode === 'hard' && score < hardGate) {
+      showGateFail();
+    } else if (currentRound < totalRounds) {
+      if (currentRound === groupRounds) showKOTransition();
+      else showKOQuestion();
+    } else {
+      showFinal();
+    }
+  };
+
+  showScreen('result-screen');
+}
+
+// === KNOCKOUT ROUNDS ===
+function showKOQuestion() {
+  koSelected = null;
+  answered = false;
+  const ko = gameKOs[currentRound - groupRounds];
+  const teams = Math.random() < 0.5 ? [ko.t1, ko.t2] : [ko.t2, ko.t1];
+
+  document.getElementById('ko-round-info').textContent = `Round ${currentRound + 1} / ${totalRounds}`;
+  document.getElementById('ko-score-display').textContent = `${score} pts`;
+  const showYear = isRepeatPairing(ko);
+  document.getElementById('ko-year').textContent = showYear ? ko.year : '';
+  document.getElementById('ko-round').textContent = showYear ? '' : '';
+
+  document.getElementById('ko-matchup').innerHTML =
+    `<div class="ko-card" data-team="${teams[0]}" onclick="selectKO(this)">${flag(teams[0])} ${teams[0]}</div>` +
+    `<div class="ko-vs">vs</div>` +
+    `<div class="ko-card" data-team="${teams[1]}" onclick="selectKO(this)">${flag(teams[1])} ${teams[1]}</div>`;
+
+  document.getElementById('ko-confirm-btn').disabled = true;
+  showScreen('ko-question-screen');
+}
+
+function selectKO(el) {
+  if (answered) return;
+  document.querySelectorAll('#ko-matchup .ko-card').forEach(c => c.classList.remove('selected'));
+  koSelected = el.dataset.team;
+  el.classList.add('selected');
+  document.getElementById('ko-confirm-btn').disabled = false;
+}
+
+function submitKO() {
+  if (answered) return;
+  answered = true;
+  const ko = gameKOs[currentRound - groupRounds];
+  const pts = koSelected === ko.w ? 2 : 0;
+  score += pts;
+  roundResults.push({ ko, selected: koSelected, pts });
+  showKOResult(ko, pts);
+}
+
+function showKOResult(ko, pts) {
+  document.getElementById('ko-result-round-info').textContent = `Round ${currentRound + 1} / ${totalRounds}`;
+  document.getElementById('ko-result-score-display').textContent = `${score} pts`;
+  document.getElementById('ko-result-year').textContent = ko.year;
+  document.getElementById('ko-result-round').textContent = ROUND_LABELS[ko.round] || '';
+
+  const teams = [ko.t1, ko.t2];
+  document.getElementById('ko-result-matchup').innerHTML = teams.map(t => {
+    const isWinner = t === ko.w;
+    const wasPicked = t === koSelected;
+    let cls = 'ko-card disabled ';
+    if (wasPicked && isWinner) cls += 'correct';
+    else if (wasPicked && !isWinner) cls += 'wrong';
+    else if (!wasPicked && isWinner) cls += 'missed';
+    else cls += 'neutral';
+    return `<div class="${cls}">${flag(t)} ${t}</div>`;
+  }).join('<div class="ko-vs">vs</div>');
+
+  document.getElementById('ko-score-reveal').textContent = ko.score;
+  const ptEl = document.getElementById('ko-result-points');
+  ptEl.textContent = pts === 0 ? '+0' : '+2';
+  ptEl.className = 'result-points ' + (pts === 0 ? 'pts-0' : 'pts-3');
+
+  const nextBtn = document.getElementById('ko-next-btn');
+  const koEliminated = mode === 'hard' && pts === 0;
+  if (koEliminated) eliminated = true;
+  nextBtn.textContent = koEliminated ? 'Eliminated' : (currentRound < totalRounds - 1 ? 'Next' : 'See Results');
+  nextBtn.onclick = () => {
+    if (koEliminated) { showFinal(); return; }
+    currentRound++;
+    if (currentRound < totalRounds) showKOQuestion();
+    else showFinal();
+  };
+  showScreen('ko-result-screen');
+}
+
+function showGateFail() {
+  // Hard mode: didn't reach 24 pts in group stage
+  eliminated = true;
+  showFinal();
+}
+
+function showKOTransition() {
+  // Brief transition then start knockouts
+  showKOQuestion();
+}
+
+function showFinal() {
+  const koPlayed = roundResults.filter(r => r.ko).length;
+  const koWon = roundResults.filter(r => r.ko && r.pts > 0).length;
+  const maxGroupPts = groupRounds * 3;
+  const groupScore = roundResults.filter(r => r.group).reduce((s, r) => s + r.pts, 0);
+
+  document.getElementById('final-score').textContent = score;
+
+  const msg = document.getElementById('final-msg');
+  if (mode === 'hard') {
+    if (eliminated && groupScore < hardGate) {
+      document.getElementById('final-max').textContent = `out of ${maxGroupPts} (group stage)`;
+      msg.textContent = `Needed ${hardGate} to qualify for knockouts. Didn't make it.`;
+    } else if (eliminated) {
+      document.getElementById('final-max').textContent = `Eliminated in Round ${groupRounds + koPlayed}`;
+      msg.textContent = `Survived ${koWon} knockout round${koWon !== 1 ? 's' : ''} before going out.`;
+    } else {
+      const maxScore = maxGroupPts + koRounds * 2;
+      document.getElementById('final-max').textContent = `out of ${maxScore}`;
+      msg.textContent = koWon === koRounds ? 'World Cup Winner!' : 'Champion run complete.';
+    }
+  } else {
+    const maxScore = groupRounds * 3 + koRounds * 2;
+    document.getElementById('final-max').textContent = `out of ${maxScore}`;
+    const pct = score / maxScore;
+    if (pct >= 0.9) msg.textContent = 'Living encyclopedia';
+    else if (pct >= 0.7) msg.textContent = 'Expert level';
+    else if (pct >= 0.4) msg.textContent = 'Solid knowledge';
+    else msg.textContent = 'Rough day at the office';
+  }
+
+  const summary = document.getElementById('summary');
+  let rows = roundResults.map((r, i) => {
+    if (r.group) {
+      const teams = r.group.teams.join(', ');
+      return `<div class="summary-row">
+        <span class="summary-teams">${r.group.year} Grp ${r.group.group}: ${teams}</span>
+        <span class="summary-pts sp-${r.pts}">+${r.pts}</span>
+      </div>`;
+    } else {
+      const ko = r.ko;
+      return `<div class="summary-row">
+        <span class="summary-teams">${ko.year} ${ROUND_LABELS[ko.round]}: ${flag(ko.t1)} ${ko.t1} vs ${flag(ko.t2)} ${ko.t2}</span>
+        <span class="summary-pts sp-${r.pts === 2 ? 3 : 0}">+${r.pts}</span>
+      </div>`;
+    }
+  }).join('');
+
+  // Insert gate result marker for hard mode
+  if (mode === 'hard') {
+    const groupRows = roundResults.filter(r => r.group).length;
+    const allRows = rows.split('</div>');
+    if (groupScore >= hardGate) {
+      allRows.splice(groupRows, 0, `<div class="qualify-banner">Qualified for Knockouts (${groupScore}/${maxGroupPts})</div`);
+    } else {
+      allRows.splice(groupRows, 0, `<div class="gate-banner">Did not qualify (${groupScore} / ${hardGate} needed)</div`);
+    }
+    rows = allRows.join('</div>');
+  }
+  summary.innerHTML = rows;
+
+  showScreen('final-screen');
+}
+</script>
+</body>
+</html>
