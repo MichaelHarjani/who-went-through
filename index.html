@@ -291,6 +291,35 @@
   .summary-pts.sp-1 { color: #ffa726; }
   .summary-pts.sp-3 { color: #66bb6a; }
 
+  .hs-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #252d42;
+  }
+  .hs-title {
+    font-size: 0.95em;
+    font-weight: 700;
+    color: #888;
+    margin-bottom: 10px;
+  }
+  .hs-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: #151b2b;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    font-size: 0.85em;
+  }
+  .hs-row.hs-current {
+    border: 1px solid #4fc3f7;
+    background: rgba(79,195,247,0.08);
+  }
+  .hs-rank { color: #666; min-width: 24px; }
+  .hs-mode { color: #888; font-size: 0.8em; }
+  .hs-score { font-weight: 700; color: #4fc3f7; min-width: 50px; text-align: right; }
+
   .eliminated-banner {
     text-align: center;
     margin: 20px 0;
@@ -344,8 +373,8 @@
       No time limit &bull; take your time
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn" onclick="startGame('easy')">Easy Mode</button>
-      <button class="btn btn-hard" onclick="startGame('hard')">Hard Mode</button>
+      <button class="btn" onclick="startGame('easy')">Play Easy</button>
+      <button class="btn btn-hard" onclick="startGame('hard')">Play Hard</button>
     </div>
     <div class="mode-desc" id="mode-desc"></div>
   </div>
@@ -420,9 +449,10 @@
     <div class="final-max" id="final-max">out of 40</div>
     <div class="final-msg" id="final-msg"></div>
     <div class="summary" id="summary"></div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn" onclick="startGame('easy')">Easy Again</button>
-      <button class="btn btn-hard" onclick="startGame('hard')">Hard Again</button>
+    <div id="highscores"></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
+      <button class="btn" onclick="startGame('easy')">Play Easy</button>
+      <button class="btn btn-hard" onclick="startGame('hard')">Play Hard</button>
     </div>
   </div>
 
@@ -1097,7 +1127,42 @@ function showFinal() {
   }
   summary.innerHTML = rows;
 
+  // High scores
+  const hs = saveHighScore(mode, score);
+  renderHighScores(hs, score);
+
   showScreen('final-screen');
+}
+
+function getHighScores() {
+  try { return JSON.parse(localStorage.getItem('wwtHighScores') || '[]'); }
+  catch { return []; }
+}
+
+function saveHighScore(mode, score) {
+  const hs = getHighScores();
+  hs.push({ mode, score, date: new Date().toLocaleDateString() });
+  hs.sort((a, b) => b.score - a.score);
+  const top10 = hs.slice(0, 10);
+  localStorage.setItem('wwtHighScores', JSON.stringify(top10));
+  return top10;
+}
+
+function renderHighScores(scores, currentScore) {
+  const el = document.getElementById('highscores');
+  if (scores.length === 0) { el.innerHTML = ''; return; }
+  let marked = false;
+  const rows = scores.map((s, i) => {
+    const isCurrent = !marked && s.score === currentScore && s.mode === mode;
+    if (isCurrent) marked = true;
+    return `<div class="hs-row ${isCurrent ? 'hs-current' : ''}">
+      <span class="hs-rank">${i + 1}.</span>
+      <span style="flex:1">${s.score} pts</span>
+      <span class="hs-mode">${s.mode}</span>
+      <span style="color:#555;margin:0 8px">${s.date}</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="hs-section"><div class="hs-title">High Scores</div>${rows}</div>`;
 }
 </script>
 </body>
