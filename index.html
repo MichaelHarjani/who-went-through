@@ -319,6 +319,20 @@
   .hs-rank { color: #666; min-width: 24px; }
   .hs-mode { color: #888; font-size: 0.8em; }
   .hs-score { font-weight: 700; color: #4fc3f7; min-width: 50px; text-align: right; }
+  /* Sized to match a Noto Color Emoji glyph: 1.248em advance, em box bottom 0.154em below baseline */
+  .flag-svg { width: 1.248em; height: 1em; vertical-align: -0.154em; }
+  .hs-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0; }
+  .hs-anon { color: #555; font-style: italic; }
+  .hs-name-input {
+    flex: 1; min-width: 0; margin-right: 8px;
+    background: #0a0e17; color: #e0e0e0;
+    border: 1px solid #4fc3f7; border-radius: 6px;
+    padding: 4px 8px; font: inherit;
+  }
+  .hs-name-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(79,195,247,0.3); }
+  .hs-mode { margin: 0 8px; }
+  .hs-date { color: #555; min-width: 70px; text-align: right; }
+  .hs-hint { color: #4fc3f7; font-size: 0.8em; margin-bottom: 8px; }
 
   .eliminated-banner {
     text-align: center;
@@ -793,9 +807,181 @@ const FLAGS = {
   "Switzerland":"🇨🇭","Togo":"🇹🇬","Trinidad and Tobago":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷",
   "Ukraine":"🇺🇦","United Arab Emirates":"🇦🇪","United States":"🇺🇸","Uruguay":"🇺🇾",
   "Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Algeria":"🇩🇿","Angola":"🇦🇴","Cote d'Ivoire":"🇨🇮","Curacao":"🇨🇼",
-  "DR Congo":"🇨🇩","Cape Verde":"🇨🇻","Jordan":"🇯🇴","Uzbekistan":"🇺🇿","Czech Republic":"🇨🇿"
+  "DR Congo":"🇨🇩","Cape Verde":"🇨🇻","Jordan":"🇯🇴","Uzbekistan":"🇺🇿",
+  // Czechoslovakia's flag is identical to the Czech flag
+  "Czechoslovakia":"🇨🇿"
 };
-function flag(t) { return FLAGS[t] || ''; }
+
+// Historical flags with no emoji of their own. Each is drawn on a flat 58x40 canvas, then every
+// point is bent along the same wave as the Noto Color Emoji flags, so edges stay vector-sharp.
+// Shape: { d: absolute SVG path (M L Q C A Z), fill, stroke, sw, cap, dash, xf: [tx, ty, scale, cx, cy] }
+// xf places artwork drawn in its own coordinates: x' = tx + scale * (x - cx), likewise for y.
+const starPath = (cx, cy, R, r, n = 5) => 'M' + Array.from({ length: 2 * n }, (_, i) => {
+  const a = (-90 + i * 180 / n) * Math.PI / 180, rr = i % 2 ? r : R;
+  return (cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2);
+}).join('L') + 'Z';
+const rectPath = (x, y, w, h) => `M${x},${y}L${x + w},${y}L${x + w},${y + h}L${x},${y + h}Z`;
+const circlePath = (cx, cy, r) => `M${cx - r},${cy}A${r},${r} 0 1 0 ${cx + r},${cy}A${r},${r} 0 1 0 ${cx - r},${cy}Z`;
+// Stripes overlap downwards so neighbouring colours never leave a hairline gap
+const tricolour = (a, b, c) => [
+  { d: rectPath(0, 0, 58, 40), fill: a }, { d: rectPath(0, 13.33, 58, 26.67), fill: b }, { d: rectPath(0, 26.67, 58, 13.33), fill: c }];
+
+// Emblem enlarged 1.2x from the official size (anchored at the top-left) so it reads at emoji size
+const USSR_STAR = [0, 0, 1.2 * 40 / 600, 0, 0], USSR = [1.2 * 0.255, 1.2 * 0.251, 1.2 * 0.988 * 40 / 600, 0, 0], GDR = [29, 20, 1.33, 25, 15], ZAIRE = [29, 20, 1.333, 22.5, 15], ULSTER = [29, 20, 1.3, 30, 15];
+const GOLD = '#FFD700';
+const SVG_FLAGS = {
+  // Star, hammer and sickle traced from the public-domain Flag_of_the_Soviet_Union.svg (Wikimedia Commons),
+  // drawn on a 1200x600 canvas; scaled by flag height (600 -> 40).
+  ussr: [
+    { d: rectPath(0, 0, 58, 40), fill: '#CC0000' },
+    { d: 'm 200.0005,37.5 -8.41933,25.911886 H 164.336 L 186.37777,79.426122 177.95844,105.338 200.0005,89.323465 222.04257,105.338 213.62324,79.426122 235.665,63.411886 h -27.24516 z m 0,13.499987 5.38828,16.583473 h 17.43718 l -14.107,10.249496 5.38827,16.583472 L 200.0005,84.167224 185.89378,94.416428 191.28205,77.832956 177.17504,67.58346 h 17.43718 z', fill: GOLD, xf: USSR_STAR },
+    { d: 'm 137.43744,171.69421 18.86296,18.9937 17.78834,-17.66589 c 27.05847,29.021 55.43807,56.99501 82.28704,86.12782 4.03444,4.06233 10.59815,4.085 14.66056,0.0506 4.06232,-4.03445 4.08499,-10.59815 0.0506,-14.66056 -28.81871,-27.1901 -57.72545,-54.60143 -86.55328,-81.89095 l 23.96499,-23.80003 -33.34026,-4.61605 z', fill: GOLD, xf: USSR },
+    { d: 'm 198.2887,110.1955 c 15.51743,8.7394 27.29872,21.28122 34.2484,34.3924 7.04394,13.28902 10.13959,27.16218 10.20325,38.25433 0.13054,22.74374 -18.43771,41.18184 -41.18183,41.18184 -12.13597,0 -23.04607,-5.24868 -30.58302,-13.60085 l -4.16863,3.51033 c -0.70999,-0.27231 -1.46387,-0.41221 -2.22429,-0.41276 -1.82948,1.9e-4 -3.56621,0.80531 -4.74859,2.20136 -2.97368,0.38896 -5.46251,2.44529 -6.40534,5.29224 -3.13486,6.28843 -8.63524,11.21997 -15.29104,13.4776 -0.0637,0.0216 -0.11992,0.05 -0.1758,0.0783 -3.07749,1.12758 -6.16259,3.1643 -8.78919,5.80245 -5.19155,5.23656 -7.72858,11.93658 -6.30024,16.63822 -0.14098,0.40857 -0.21361,0.83759 -0.21498,1.26979 1.5e-4,2.17082 1.75991,3.93058 3.93073,3.93073 0.54341,-0.002 1.08053,-0.11639 1.57745,-0.33632 4.69369,1.05881 11.06885,-1.54582 16.05444,-6.55917 2.82624,-2.85072 4.94356,-6.22349 5.98303,-9.53062 2.31696,-6.62278 7.29699,-12.01856 13.62281,-15.05312 0.15105,-0.0725 0.27303,-0.14714 0.38218,-0.22358 2.12082,-1.01408 3.67251,-2.92895 4.225,-5.2139 9.70222,11.44481 24.25255,18.75299 40.51876,19.13577 29.83352,0.70205 52.13299,-21.25802 53.16414,-52.83642 0.51894,-15.89259 -5.62993,-36.3847 -19.6412,-53.19089 -10.70835,-12.84441 -26.40987,-23.50795 -44.18699,-28.20777 z', fill: GOLD, xf: USSR },
+  ],
+  sfry: [...tricolour('#003893', '#fff', '#DE0000'),
+    { d: starPath(29, 21, 13, 5.1), fill: '#DE0000', stroke: '#FCD116', sw: 1.2 }],
+  fry: tricolour('#003893', '#fff', '#DE0000'),
+  gdr: [...tricolour('#000', '#DD0000', '#FFCE00'),
+    { d: 'M20.6,19.6 A6.6,6.6 0 0 1 24,7.6 M29.4,19.6 A6.6,6.6 0 0 0 26,7.6', stroke: '#FFCE00', sw: 1.6, dash: [1.6, 0.5], xf: GDR },
+    { d: 'M21,19.4 Q25,22.4 29,19.4', stroke: '#DD0000', sw: 1.2, xf: GDR },
+    { d: 'M25,10.2 L22.4,18.3 M25,10.2 L27.6,18.3 M22.2,15.4 Q25,17.2 27.8,15.4', stroke: '#FFCE00', sw: 0.9, cap: 'round', xf: GDR },
+    { d: 'M25,11.4 L25,17.8', stroke: '#FFCE00', sw: 0.8, cap: 'round', xf: GDR },
+    { d: 'M23.3,11.4 L26.7,11.4', stroke: '#FFCE00', sw: 1.5, xf: GDR },
+    { d: circlePath(25, 10.2, 0.9), fill: '#FFCE00', xf: GDR }],
+  zaire: [
+    { d: rectPath(0, 0, 58, 40), fill: '#00A651' },
+    { d: circlePath(22.5, 15, 9.2), fill: '#FCD116', xf: ZAIRE },
+    { d: 'M17.2,23.2 L21.6,16.3 Q22.6,15.4 23.6,15.6 L24.6,12.6', stroke: '#6B3E1C', sw: 2.8, cap: 'round', xf: ZAIRE },
+    { d: 'M24.9,12.4 L25.9,8.6', stroke: '#3a2410', sw: 1.5, cap: 'round', xf: ZAIRE },
+    { d: 'M26.4,8.6 C24.2,7.6 24.8,5.2 26.6,3.4 C26.6,5 28.6,5.4 28.2,7.2 C27.9,8.3 27.2,8.7 26.4,8.6 Z', fill: '#CE1021', xf: ZAIRE }],
+  ulster: [
+    { d: rectPath(0, 0, 58, 40), fill: '#fff' },
+    { d: rectPath(25, 0, 8, 40), fill: '#CC0000' }, { d: rectPath(0, 16, 58, 8), fill: '#CC0000' },
+    { d: starPath(30, 15.6, 5.8, 3.35, 6), fill: '#fff', stroke: '#999', sw: 0.2, xf: ULSTER },
+    { d: 'M29,18 L29,15.4 L28.4,14.4 L29.2,14.2 L29.4,13.1 L29.9,13 L30.1,12.7 L30.6,12.9 L30.9,13.4 L31.4,14 L31.2,18 Z', fill: '#CC0000', xf: ULSTER },
+    { d: 'M27.6,8.6 L27.2,5.6 L28.5,6.8 L30,4.8 L31.5,6.8 L32.8,5.6 L32.4,8.6 Z', fill: '#FFCE00', stroke: '#8a6d00', sw: 0.2, xf: ULSTER }],
+};
+const SVG_FLAG_TEAMS = {
+  "Soviet Union": () => 'ussr',
+  "Yugoslavia": y => (y && y >= 1992) ? 'fry' : 'sfry',  // star dropped after 1992
+  "Serbia and Montenegro": () => 'fry',
+  "East Germany": () => 'gdr',
+  "Zaire": () => 'zaire',
+  "Northern Ireland": () => 'ulster'
+};
+
+// Turn an absolute SVG path into polylines: [{ pts: [[x, y], ...], closed }]
+function flattenPath(d) {
+  const tok = d.match(/[MLHVQCAZ]|[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi);
+  const subs = []; let cur = null, i = 0, cmd = '', x = 0, y = 0, sx = 0, sy = 0;
+  const num = () => parseFloat(tok[i++]);
+  const STEPS = 24;
+  while (i < tok.length) {
+    if (/^[A-Za-z]$/.test(tok[i])) cmd = tok[i++];
+    const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+    const ox = rel ? x : 0, oy = rel ? y : 0;
+    if (C === 'M') {
+      x = ox + num(); y = oy + num(); sx = x; sy = y;
+      cur = { pts: [[x, y]], closed: false }; subs.push(cur);
+      cmd = rel ? 'l' : 'L';  // further pairs are implicit line-tos
+    } else if (C === 'L') { x = ox + num(); y = oy + num(); cur.pts.push([x, y]); }
+    else if (C === 'H') { x = ox + num(); cur.pts.push([x, y]); }
+    else if (C === 'V') { y = oy + num(); cur.pts.push([x, y]); }
+    else if (C === 'Z') { cur.closed = true; x = sx; y = sy; if (i < tok.length && !/^[A-Za-z]$/.test(tok[i])) break; }
+    else if (C === 'Q') {
+      const x1 = ox + num(), y1 = oy + num(), x2 = ox + num(), y2 = oy + num();
+      for (let s = 1; s <= STEPS; s++) { const t = s / STEPS, m = 1 - t;
+        cur.pts.push([m * m * x + 2 * m * t * x1 + t * t * x2, m * m * y + 2 * m * t * y1 + t * t * y2]); }
+      x = x2; y = y2;
+    } else if (C === 'C') {
+      const x1 = ox + num(), y1 = oy + num(), x2 = ox + num(), y2 = oy + num(), x3 = ox + num(), y3 = oy + num();
+      for (let s = 1; s <= STEPS; s++) { const t = s / STEPS, m = 1 - t;
+        cur.pts.push([m*m*m*x + 3*m*m*t*x1 + 3*m*t*t*x2 + t*t*t*x3, m*m*m*y + 3*m*m*t*y1 + 3*m*t*t*y2 + t*t*t*y3]); }
+      x = x3; y = y3;
+    } else if (C === 'A') {
+      // Endpoint to centre parameterisation (SVG spec F.6.5), circular arcs only
+      let r = num(); num(); num(); const large = num(), sweep = num(), x2 = ox + num(), y2 = oy + num();
+      const mx = (x - x2) / 2, my = (y - y2) / 2;
+      r = Math.max(r, Math.hypot(mx, my));
+      let k = Math.sqrt(Math.max(0, (r * r - mx * mx - my * my) / (mx * mx + my * my)));
+      if (large === sweep) k = -k;
+      const cx = k * my + (x + x2) / 2, cy = -k * mx + (y + y2) / 2;
+      const a1 = Math.atan2(y - cy, x - cx); let da = Math.atan2(y2 - cy, x2 - cx) - a1;
+      if (sweep && da < 0) da += 2 * Math.PI; else if (!sweep && da > 0) da -= 2 * Math.PI;
+      const n = Math.ceil(Math.abs(da) / (Math.PI / 24));
+      for (let s = 1; s <= n; s++) { const a = a1 + da * s / n; cur.pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+      x = x2; y = y2;
+    } else break;
+  }
+  return subs;
+}
+
+// Wave geometry, in pixels of a 512px-font em box (glyph advance 639px, baseline at 433px).
+// WAVE_TOP is the measured top edge of the Noto flag at 17 evenly spaced columns from x=22 to x=616;
+// the bottom edge is the top edge shifted down by 409px.
+const WAVE_TOP = [75,57,47,42,39,41,43,48,55,60,65,69,70,66,61,51,37];
+const WAVE_X0 = 22, WAVE_W = 594, WAVE_H = 409;
+function waveTop(u) {
+  const n = WAVE_TOP.length - 1, p = Math.min(Math.max(u, 0), 1) * n;
+  const i = Math.min(Math.floor(p), n - 1), t = p - i;
+  const v = k => WAVE_TOP[Math.min(Math.max(k, 0), n)];
+  const p0 = v(i - 1), p1 = v(i), p2 = v(i + 1), p3 = v(i + 2);  // Catmull-Rom
+  return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+}
+// Flat 58x40 point -> waved point in the em box
+const wavePoint = (x, y) => [WAVE_X0 + x * WAVE_W / 58, y * WAVE_H / 40 + waveTop(x / 58)];
+
+function waveShape(shape) {
+  const [tx, ty, s, cx, cy] = shape.xf || [0, 0, 1, 0, 0];
+  const out = flattenPath(shape.d).map(({ pts, closed }) => {
+    pts = pts.map(([x, y]) => [tx + s * (x - cx), ty + s * (y - cy)]);
+    if (closed) pts.push(pts[0]);
+    const fine = [pts[0]];
+    for (let k = 1; k < pts.length; k++) {  // subdivide so long edges follow the wave
+      const [ax, ay] = pts[k - 1], [bx, by] = pts[k], n = Math.ceil(Math.hypot(bx - ax, by - ay) / 0.5);
+      for (let j = 1; j <= n; j++) fine.push([ax + (bx - ax) * j / n, ay + (by - ay) * j / n]);
+    }
+    return 'M' + fine.map(p => wavePoint(...p).map(v => v.toFixed(1)).join(',')).join('L') + (closed ? 'Z' : '');
+  }).join('');
+  const px = WAVE_W / 58;
+  let attrs = `fill="${shape.fill || 'none'}"`;
+  if (shape.stroke) attrs += ` stroke="${shape.stroke}" stroke-width="${(shape.sw * s * px).toFixed(1)}" stroke-linecap="${shape.cap || 'butt'}" stroke-linejoin="round"`;
+  if (shape.dash) attrs += ` stroke-dasharray="${shape.dash.map(v => (v * s * px).toFixed(1)).join(' ')}"`;
+  return `<path d="${out}" ${attrs}/>`;
+}
+
+(function buildFlagSprite() {
+  const topAt = x => waveTop((x - WAVE_X0) / WAVE_W);
+  let outline = '', bottom = [];
+  for (let i = 0; i <= 96; i++) {
+    const u = i / 96, x = (WAVE_X0 + u * WAVE_W).toFixed(1), y = waveTop(u);
+    outline += (i ? 'L' : 'M') + x + ',' + y.toFixed(1);
+    bottom.unshift('L' + x + ',' + (y + WAVE_H).toFixed(1));
+  }
+  outline += bottom.join('') + 'Z';
+  // Shade by the wave's slope: darker where it falls away, lighter where it rises
+  let stops = '';
+  for (let i = 0; i <= 64; i++) {
+    const x = i / 64 * 639, slope = (topAt(x + 4) - topAt(x - 4)) / 8;
+    stops += `<stop offset="${(i / 64).toFixed(4)}" stop-color="${slope > 0 ? '#000' : '#fff'}" stop-opacity="${Math.min(Math.abs(slope) * 0.35, 0.16).toFixed(3)}"/>`;
+  }
+  let defs = `<clipPath id="wwt-wave"><path d="${outline}"/></clipPath>` +
+    `<linearGradient id="wwt-shade" gradientUnits="userSpaceOnUse" x1="0" x2="639" y1="0" y2="0">${stops}</linearGradient>`;
+  for (const key in SVG_FLAGS) {
+    defs += `<g id="wwt-flag-${key}" clip-path="url(#wwt-wave)">${SVG_FLAGS[key].map(waveShape).join('')}` +
+      `<rect width="639" height="512" fill="url(#wwt-shade)"/>` +
+      `<path d="${outline}" fill="none" stroke="#000" stroke-opacity="0.22" stroke-width="18"/></g>`;
+  }
+  document.body.insertAdjacentHTML('afterbegin',
+    `<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>${defs}</defs></svg>`);
+})();
+
+function flag(t, year) {
+  if (FLAGS[t]) return FLAGS[t];
+  const pick = SVG_FLAG_TEAMS[t];
+  if (!pick) return '';
+  return `<svg class="flag-svg" viewBox="0 0 639 512" role="img" aria-label="Flag of ${t}"><use href="#wwt-flag-${pick(year)}"/></svg>`;
+}
 
 // Game state
 let mode = 'easy'; // 'easy' or 'hard'
@@ -891,7 +1077,7 @@ function showQuestion() {
 
   const grid = document.getElementById('team-grid');
   grid.innerHTML = shuffledTeams.map(t =>
-    `<div class="team-card" data-team="${t}" onclick="selectTeam(this)">${flag(t)} ${t}</div>`
+    `<div class="team-card" data-team="${t}" onclick="selectTeam(this)">${flag(t, g.year)} ${t}</div>`
   ).join('');
 
   showScreen('question-screen');
@@ -946,7 +1132,7 @@ function showResult(g, pts) {
     else if (wasSelected && !isCorrect) cls += 'wrong';
     else if (!wasSelected && isCorrect) cls += 'missed';
     else cls += 'neutral';
-    return `<div class="${cls}">${flag(t)} ${t}</div>`;
+    return `<div class="${cls}">${flag(t, g.year)} ${t}</div>`;
   }).join('');
 
   // Standings table
@@ -955,7 +1141,7 @@ function showResult(g, pts) {
     <tr><th>Team</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr>
     ${g.standings.map((s, i) => {
       const cls = i < 2 ? 'advanced' : 'eliminated';
-      return `<tr class="${cls}"><td>${flag(s.team)} ${s.team}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.pts}</td></tr>`;
+      return `<tr class="${cls}"><td>${flag(s.team, g.year)} ${s.team}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.pts}</td></tr>`;
     }).join('')}
   `;
 
@@ -993,9 +1179,9 @@ function showKOQuestion() {
   document.getElementById('ko-round').textContent = showYear ? '' : '';
 
   document.getElementById('ko-matchup').innerHTML =
-    `<div class="ko-card" data-team="${teams[0]}" onclick="selectKO(this)">${flag(teams[0])} ${teams[0]}</div>` +
+    `<div class="ko-card" data-team="${teams[0]}" onclick="selectKO(this)">${flag(teams[0], ko.year)} ${teams[0]}</div>` +
     `<div class="ko-vs">vs</div>` +
-    `<div class="ko-card" data-team="${teams[1]}" onclick="selectKO(this)">${flag(teams[1])} ${teams[1]}</div>`;
+    `<div class="ko-card" data-team="${teams[1]}" onclick="selectKO(this)">${flag(teams[1], ko.year)} ${teams[1]}</div>`;
 
   document.getElementById('ko-confirm-btn').disabled = true;
   showScreen('ko-question-screen');
@@ -1034,7 +1220,7 @@ function showKOResult(ko, pts) {
     else if (wasPicked && !isWinner) cls += 'wrong';
     else if (!wasPicked && isWinner) cls += 'missed';
     else cls += 'neutral';
-    return `<div class="${cls}">${flag(t)} ${t}</div>`;
+    return `<div class="${cls}">${flag(t, ko.year)} ${t}</div>`;
   }).join('<div class="ko-vs">vs</div>');
 
   document.getElementById('ko-score-reveal').textContent = ko.score;
@@ -1108,7 +1294,7 @@ function showFinal() {
     } else {
       const ko = r.ko;
       return `<div class="summary-row">
-        <span class="summary-teams">${ko.year} ${ROUND_LABELS[ko.round]}: ${flag(ko.t1)} ${ko.t1} vs ${flag(ko.t2)} ${ko.t2}</span>
+        <span class="summary-teams">${ko.year} ${ROUND_LABELS[ko.round]}: ${flag(ko.t1, ko.year)} ${ko.t1} vs ${flag(ko.t2, ko.year)} ${ko.t2}</span>
         <span class="summary-pts sp-${r.pts === 2 ? 3 : 0}">+${r.pts}</span>
       </div>`;
     }
@@ -1139,30 +1325,60 @@ function getHighScores() {
   catch { return []; }
 }
 
+function getPlayerName() {
+  try { return localStorage.getItem('wwtPlayerName') || ''; } catch { return ''; }
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let currentEntryId = null;
+
 function saveHighScore(mode, score) {
   const hs = getHighScores();
-  hs.push({ mode, score, date: new Date().toLocaleDateString() });
+  currentEntryId = Date.now();
+  hs.push({ id: currentEntryId, name: getPlayerName(), mode, score, date: new Date().toLocaleDateString() });
   hs.sort((a, b) => b.score - a.score);
   const top10 = hs.slice(0, 10);
-  localStorage.setItem('wwtHighScores', JSON.stringify(top10));
+  try { localStorage.setItem('wwtHighScores', JSON.stringify(top10)); } catch {}
   return top10;
+}
+
+function saveName(input) {
+  const name = input.value.trim().slice(0, 20);
+  try { localStorage.setItem('wwtPlayerName', name); } catch {}
+  const hs = getHighScores();
+  const entry = hs.find(s => s.id === currentEntryId);
+  if (entry) {
+    entry.name = name;
+    try { localStorage.setItem('wwtHighScores', JSON.stringify(hs)); } catch {}
+  }
 }
 
 function renderHighScores(scores, currentScore) {
   const el = document.getElementById('highscores');
   if (scores.length === 0) { el.innerHTML = ''; return; }
-  let marked = false;
   const rows = scores.map((s, i) => {
-    const isCurrent = !marked && s.score === currentScore && s.mode === mode;
-    if (isCurrent) marked = true;
+    const isCurrent = s.id === currentEntryId;
+    const nameCell = isCurrent
+      ? `<input class="hs-name-input" id="hs-name-input" maxlength="20" placeholder="Your name"
+           value="${escapeHTML(s.name || '')}" oninput="saveName(this)"
+           onkeydown="if(event.key==='Enter')this.blur()">`
+      : `<span class="hs-name">${s.name ? escapeHTML(s.name) : '<span class="hs-anon">Anonymous</span>'}</span>`;
     return `<div class="hs-row ${isCurrent ? 'hs-current' : ''}">
       <span class="hs-rank">${i + 1}.</span>
-      <span style="flex:1">${s.score} pts</span>
+      ${nameCell}
+      <span class="hs-score">${s.score} pts</span>
       <span class="hs-mode">${s.mode}</span>
-      <span style="color:#555;margin:0 8px">${s.date}</span>
+      <span class="hs-date">${s.date}</span>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="hs-section"><div class="hs-title">High Scores</div>${rows}</div>`;
+  const madeIt = scores.some(s => s.id === currentEntryId);
+  el.innerHTML = `<div class="hs-section"><div class="hs-title">High Scores</div>
+    ${madeIt ? '<div class="hs-hint">New high score! Type your name below.</div>' : ''}${rows}</div>`;
+  const input = document.getElementById('hs-name-input');
+  if (input && !input.value) input.focus();
 }
 </script>
 </body>
